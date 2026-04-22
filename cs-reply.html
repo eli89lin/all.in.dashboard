@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ALL IN 客服回覆工具</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #1a1a1a;
+      --gray-dark: #4a4a4a;
+      --gray-mid: #9a9a9a;
+      --gray-light: #e8e8e8;
+      --bg: #f7f6f4;
+      --white: #ffffff;
+      --green: #3d6b4f;
+      --red: #9b3a3a;
+    }
+    body {
+      font-family: -apple-system, "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: var(--bg);
+      color: var(--black);
+      min-height: 100vh;
+    }
+    header {
+      background: var(--black);
+      color: var(--white);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 15px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; }
+    header span { font-size: 12px; color: var(--gray-mid); letter-spacing: 0.06em; }
+    .container { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+    .card {
+      background: var(--white);
+      border: 1px solid var(--gray-light);
+      border-radius: 4px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--gray-mid); margin-bottom: 16px;
+    }
+    label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-dark); }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    input[type="text"], input[type="password"], textarea, select {
+      border: 1px solid var(--gray-light); border-radius: 3px; padding: 10px 12px;
+      font-size: 13px; font-family: inherit; color: var(--black);
+      background: var(--white); transition: border-color 0.15s; width: 100%;
+    }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--black); }
+    textarea { resize: vertical; line-height: 1.7; }
+    #input-text { min-height: 140px; }
+    #output-text { min-height: 180px; background: #fafaf9; }
+    .hint { font-size: 11px; color: var(--gray-mid); line-height: 1.5; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    button {
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 11px 24px; border-radius: 3px; border: none;
+      cursor: pointer; transition: opacity 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: var(--black); color: var(--white); }
+    .btn-primary:hover:not(:disabled) { background: #333; }
+    .btn-secondary { background: transparent; color: var(--black); border: 1px solid var(--gray-light); }
+    .btn-secondary:hover:not(:disabled) { border-color: var(--black); }
+    .btn-copy { background: var(--green); color: var(--white); }
+    .btn-copy:hover:not(:disabled) { opacity: 0.85; }
+    .status { font-size: 12px; color: var(--gray-mid); flex: 1; align-self: center; }
+    .status.error { color: var(--red); }
+    .status.success { color: var(--green); }
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid var(--gray-light); border-top-color: var(--gray-mid);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .image-preview {
+      margin-top: 10px; display: none;
+      border: 1px solid var(--gray-light); border-radius: 3px; padding: 8px;
+      align-items: center; gap: 12px;
+    }
+    .image-preview img { max-height: 80px; max-width: 120px; border-radius: 2px; }
+    .image-preview span { font-size: 12px; color: var(--gray-dark); flex: 1; }
+    .image-preview button { padding: 6px 12px; font-size: 10px; }
+    .api-key-row { display: flex; align-items: center; gap: 8px; }
+    .toggle-key {
+      background: transparent; border: 1px solid var(--gray-light);
+      color: var(--gray-dark); padding: 4px 10px; font-size: 10px; letter-spacing: 0.06em;
+    }
+    .output-actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+    #results-section { display: none; }
+    .copy-confirm { font-size: 11px; color: var(--green); opacity: 0; transition: opacity 0.3s; }
+    .copy-confirm.show { opacity: 1; }
+    select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239a9a9a'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>ALL IN — 客服回覆工具</h1>
+  <span>貼入問題 → AI 擬稿 → 複製發送</span>
+</header>
+
+<div class="container">
+
+  <!-- 設定 -->
+  <div class="card">
+    <div class="card-title">設定</div>
+    <div class="row">
+      <div class="field" style="flex:2;min-width:240px;">
+        <label>Anthropic API Key</label>
+        <div class="api-key-row">
+          <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off">
+          <button class="toggle-key" onclick="toggleKey()">顯示</button>
+        </div>
+      </div>
+      <div class="field" style="flex:1;min-width:160px;">
+        <label>回覆對象稱呼</label>
+        <input type="text" id="name-hint" placeholder="例：柯小姐、郭先生">
+        <span class="hint">選填，留空自動判斷</span>
+      </div>
+      <div class="field" style="flex:1;min-width:160px;">
+        <label>時段</label>
+        <select id="time-hint">
+          <option value="auto">自動判斷</option>
+          <option value="早安">早上</option>
+          <option value="午安">下午</option>
+          <option value="晚安">晚上</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 輸入 -->
+  <div class="card">
+    <div class="card-title">消費者訊息</div>
+    <div class="field">
+      <label>貼入文字訊息</label>
+      <textarea id="input-text" placeholder="將消費者傳來的訊息貼在這裡…&#10;&#10;可以是單一問題，也可以是一整段對話。"></textarea>
+    </div>
+    <div class="field">
+      <label>或上傳截圖</label>
+      <input type="file" id="image-input" accept="image/*" style="display:none" onchange="handleImage(event)">
+      <button class="btn-secondary" style="width:fit-content;padding:9px 20px;" onclick="document.getElementById('image-input').click()">選擇圖片</button>
+      <div class="image-preview" id="image-preview">
+        <img id="preview-img" src="" alt="preview">
+        <span id="preview-name"></span>
+        <button class="btn-secondary" onclick="clearImage()">移除</button>
+      </div>
+      <span class="hint">支援 PNG、JPG、HEIC 截圖</span>
+    </div>
+    <div class="row" style="margin-top:4px;">
+      <button class="btn-primary" id="draft-btn" onclick="draftReply()">擬稿</button>
+      <button class="btn-secondary" onclick="clearAll()">清除</button>
+      <span class="status" id="status-msg"></span>
+    </div>
+  </div>
+
+  <!-- 輸出 -->
+  <div id="results-section">
+    <div class="card">
+      <div class="card-title">建議回覆草稿</div>
+      <textarea id="output-text" spellcheck="false"></textarea>
+      <div class="output-actions">
+        <button class="btn-copy" onclick="copyReply()">複製回覆</button>
+        <button class="btn-secondary" onclick="draftReply()">重新擬稿</button>
+        <span class="copy-confirm" id="copy-confirm">已複製 ✓</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const keyInput = document.getElementById('api-key');
+keyInput.value = localStorage.getItem('allin_api_key') || '';
+keyInput.addEventListener('change', () => localStorage.setItem('allin_api_key', keyInput.value.trim()));
+function toggleKey() { keyInput.type = keyInput.type === 'password' ? 'text' : 'password'; }
+
+let imageBase64 = null;
+let imageMediaType = null;
+
+function handleImage(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const result = ev.target.result;
+    imageBase64 = result.split(',')[1];
+    imageMediaType = file.type || 'image/jpeg';
+    document.getElementById('preview-img').src = result;
+    document.getElementById('preview-name').textContent = file.name;
+    const preview = document.getElementById('image-preview');
+    preview.style.display = 'flex';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImage() {
+  imageBase64 = null; imageMediaType = null;
+  document.getElementById('image-input').value = '';
+  document.getElementById('image-preview').style.display = 'none';
+}
+
+function setStatus(msg, type = '') {
+  const el = document.getElementById('status-msg');
+  el.className = 'status' + (type ? ' ' + type : '');
+  el.innerHTML = msg;
+}
+
+function clearAll() {
+  document.getElementById('input-text').value = '';
+  document.getElementById('output-text').value = '';
+  document.getElementById('results-section').style.display = 'none';
+  clearImage();
+  setStatus('');
+}
+
+const SYSTEM_PROMPT = `你是 ALL IN 全食理念品牌的資深客服專員，擁有完整的品牌知識與標準回覆資料庫。
+
+【品牌核心】
+- 品牌名稱：ALL IN 全食理念
+- 核心理念：全食物飲食，零添加、低升糖，獨家專利微米化技術
+- 產品線：全食飲（豆漿系列）、小全頭（全食物饅頭）、厚果醬（純腰果）、全方麵、全食圈（貝果）
+
+【語氣準則】
+- 開頭：Hello [姓名稱呼]，[早安/午安/晚安]！（無特定時段可省略問候）
+- 語氣溫暖踏實，參考 Hermès / Aesop 風格：自信、直接、有質感，不浮誇
+- 稱謂規則：能判斷性別時，一律用「姓氏 + 先生／小姐」（如王小姐、陳先生）；無法判別性別時，用「您好」或「你好」（依情境選擇）
+- 語氣助詞「呦」「囉」「喔」，親切但不幼稚
+- 結尾可加：have an ALL IN [weekday] ahead!（自然使用，非每次都加）
+- 道歉用「不好意思」「跟你說聲不好意思」，誠懇即可，不過度
+- 感謝用「謝謝你/您…」，簡單直接
+- 不說「健康食物」，說「全食理念」「全食日常」「全食選擇」
+
+【禁用語 — 這些詞語太油條，一律避免】
+- ✗「能認識您真的是我們的榮幸」
+- ✗「歡迎加入我們的大家庭」「加入大家庭」
+- ✗「非常感謝您撥空…」→ 改用「謝謝你…」
+- ✗「再次向您致上歉意」→ 改用「再次跟你說聲不好意思」
+- ✗「若您不吝…」「若您不吝賜教」
+- ✗「我們將竭盡全力為您服務」
+- ✗「感謝您一路以來的鼎力支持」→ 改用「謝謝你一路以來的支持」
+- ✗「再給我們30秒時間介紹一下自己」
+- ✗「讓我們持續陪伴您的日常」（除非語境自然，否則避免）
+
+【客訴處理邏輯】
+1. 感謝客人告知、提供照片或影片
+2. 說明原因（不推卸責任，誠實說明）
+3. 固定句：「無論原因為何，我們都視為品牌的責任。」
+4. 提供兩個補償選項讓客人選擇
+
+【真實對話例句 — 學習這些語氣與結構】
+
+▌暫停 / 延後出貨：
+消費者：「下週出國不在，請幫我延2週寄送」
+→「謝謝你的通知，我們會為你改成 [日期]（[星期]）再出貨，或你有想要改到什麼時候，可以再跟我們說喔！」
+
+▌出貨通知（固定格式）：
+「Hello，[晚安/午安]！今天有安排包裹配送喔！
+-
+寄送項目：[商品名稱]
+黑貓宅急便 追蹤連結：[連結]
+預計最快到貨時間：[月日] ([星期])
+-
+有什麼需要我們協助的地方，再隨時跟我們說！」
+
+▌寄領方案取貨資訊更新（固定格式）：
+「簡單更新一下取貨資訊呦！
+-
+【[方案名稱]】
+方案購買日期：[日期]
+[更新日期]
+已領取：[X]瓶/包
+剩餘數量：[X]瓶/包」
+
+▌破損 / 品質問題補償：
+「[姓名]你好，
+
+非常抱歉讓你遇到這樣的狀況，也謝謝你拍照讓我們了解情況。
+
+關於此次 [問題描述]，無論原因為何，我們都視為品牌的責任。
+希望為你提供補償，可以選擇以下方式：
+
+1. 下一次出貨日 [日期] 為你補配送 12 瓶全食飲（口味任選、不扣除期數）
+2. NT$[金額] 的官網購物金（等值此次訂單，無使用期限，可自由選購）
+
+再跟你說聲不好意思，有任何問題隨時跟我們說。」
+
+▌客人說補償太多時：
+「雖然你說不用這麼多，但收到的商品有異常情況，我們都視為品牌的責任。補償是我們一貫的做法，還請你放心使用。」
+
+▌品質問題嚴重（如收到即期品）：
+「[姓名]你好，
+
+謝謝你坦率提出的疑慮。
+
+此次實際發生的狀況是 [說明原因，誠實不推卸]。這樣的錯誤不該發生，也絕非我們希望任何消費者需要面對的情況。
+
+[補償方案]
+
+再跟你說聲不好意思，若還有需要協助的地方，請隨時跟我們說。」
+
+▌效期竄改疑慮（澄清）：
+「所有產品效期皆於生產端出廠前以噴墨印製於瓶身，我們無法任意更動。你手中的效期標示即為出廠時固定的日期，請放心。」
+
+▌新客歡迎（簡潔版）：
+「Hello [姓名]，
+
+歡迎你！之後對產品有任何問題或需要協助，直接訊息我們，會有專人回覆。
+
+ALL IN 為忙碌生活設計，真正撐得住一餐的全食選擇。
+歡迎追蹤 Instagram 掌握最新消息：https://www.instagram.com/all.intoday/」
+
+▌訂閱口味調整確認：
+「Hello [姓名][早安/午安/晚安]，口味組合變更的需求已收到。
+
+已更新為 [新口味組合]，下次 [日期] 出貨時會依新設定配送，謝謝！」
+
+▌出貨查詢（簡短確認）：
+「[姓名]你好，確認你先前購買的是 [方案]，[日期] 配送後目前沒有安排其他配送囉！」
+
+▌女性健康 — 經期喝全食飲：
+「可以喝的！紅棗核桃全食飲的紅棗補鐵補氣，核桃的好油和鎂有助舒緩，加上黃豆的天然異黃酮，經期喝很適合。建議可以隔水加熱（瓶身耐熱 130°C），溫溫喝更舒服。」
+
+【標準 Q&A 資料庫】
+
+產品｜全食飲：
+- 開封後：有接觸空氣中細菌疑慮，繼續冷藏並儘速飲用完畢
+- 保存期限：自生產日起21天，消費者收到時距有效日期至少10天以上
+- 素食：是，全系列以【全食物、植物性】為核心
+- 破損/液體滲出：請提供照片，確認後進行換貨/退款流程
+- 瓶口不乾淨：充填過程溢出殘留，高溫封膜後乾燥所致，正在優化製程
+- 確認是否可飲用：檢查①有無分離現象②瓶身有無鼓起結霜③有無酸臭味，三者都沒有則正常
+- 紅棗核桃有白色沉澱：正常油水分離，無乳化劑所致，搖勻即可
+- 黃豆全食飲凝固：可能是低溫造成，確認瓶身無鼓起、無酸臭味則可搖勻飲用；若狀況異常請提供照片回報
+- 無糖：無額外添加糖份，營養標示的糖是黃豆天然醣類
+- 胃痛：適應期正常反應，建議餐前飲用或酌量
+- 有機：目前未採用有機，但嚴格選材+通過 ISO/HACCP 認證
+- 大瓶裝：目前未推出，有規劃會公告
+- 為什麼出那麼多瓶：依「一天一瓶」飲用節奏設計，幫助建立健康日常習慣
+- 加熱：瓶身可耐 130°C，建議隔水加熱，溫溫喝更好吸收
+
+產品｜小全頭：
+- 不冰可放多久：冷凍車取出後一小時內回到冷凍
+- 是否無麩質：非無麩質，但低麩質；麵粉用量是一般饅頭的四分之一
+- 結霜：正常，冷凍過程中水分凝結，不影響食品安全
+- 適合月齡：十個月以上寶寶、長輩都可安心食用
+- 用料比例：60%細化食材＋20%米穀粉＋20%麵粉，老麵酵母自然發酵
+
+產品｜厚果醬：
+- 黃麴毒素：嚴格篩選＋低溫烘焙，陰涼乾燥處保存不會產生
+- 蓋子很難開：真空密封，倒轉輕敲邊緣或用乾布增加摩擦力
+
+配送：
+- 宅轉店：可以，填寫7-11門市名稱，物流致電確認後轉寄
+- 海外運送：因冷藏需求，現階段不寄送海外
+- 合併溫層：無法合併不同溫層訂單
+- 調整訂閱口味：可以，請透過 LINE 客服調整
+- 暫停/延後出貨：可以，告知希望調整到的出貨日即可
+- 出貨後物流通知：出貨當日會在 LINE 發送黑貓追蹤連結
+
+營養與病症：
+- 孕婦：非常適合，無添加、TFC台北生殖中心合作產品
+- 小朋友：全年齡均可，確認無豆類過敏，4-6個月以上寶寶可喝
+- 代餐：可以，富含膳食纖維和蛋白質，熱量低，建議一天一罐
+- 便秘：可改善，10.2g植物性非水溶性膳食纖維，相當於高麗菜1000g或四盒沙拉
+- 糖尿病/高血壓：非常適合，有助血糖穩定、心血管健康
+- 脹氣：適應期正常反應，由少量開始配足水分
+- 經期：適合喝，紅棗核桃全食飲尤其適合，建議加熱溫飲
+
+品牌：
+- 有機：重視營養密度與品質，供應穩定，通過嚴格食安認證
+- 定價貴：原型食材、無添加、無廉價填充物，吃得安心吃得值得
+- 味王代工：食品安全與品質控管專業大廠，每個細節由 ALL IN 與味王嚴格把關
+- 台中展店：目前與台中 Ivette 合作，有更多消息會第一時間分享
+- 瓶子回收：規劃空瓶回收計畫，將與大安旗艦店同步啟動
+
+【你 vs 您 使用規範 — 必須遵守】
+- 預設用「你」：一般回覆、打招呼、提醒、日常關心
+- 一律用「您」：客訴、產品問題、退款、道歉、異常說明、情緒性情境
+- 同一則訊息中絕對不混用「你」和「您」
+- 判斷困難時優先選「您」
+
+【口味名稱規定 — 必須使用完整名稱】
+- 「原味」→ 必須寫「黃豆」
+- 「黑五」→ 必須寫「黑五次方」
+- 「紅棗」→ 必須寫「紅棗核桃」
+- 「杏仁」→ 必須寫「杏仁糙米」
+任何情況下都不使用縮寫，一律完整打出口味全名。
+
+【重要注意事項】
+- 回覆只寫給消費者看的內容，不加任何括號說明或備注
+- 若問題不在資料庫內，以品牌語氣和核心理念推理回答
+- 不確定的事情（如效期、訂單細節）用「我們幫你確認一下」帶過，不要亂猜
+- 回覆長度適中，不冗長，有條理
+- 只輸出回覆正文，不加標題或分隔線`;
+
+async function draftReply() {
+  const apiKey = keyInput.value.trim();
+  const inputText = document.getElementById('input-text').value.trim();
+  const nameHint = document.getElementById('name-hint').value.trim();
+  const timeHint = document.getElementById('time-hint').value;
+
+  if (!apiKey) { setStatus('請先填入 API Key', 'error'); return; }
+  if (!inputText && !imageBase64) { setStatus('請貼入訊息或上傳截圖', 'error'); return; }
+
+  localStorage.setItem('allin_api_key', apiKey);
+  document.getElementById('draft-btn').disabled = true;
+  setStatus('<span class="spinner"></span>擬稿中…');
+
+  const contextNote = [
+    nameHint ? `對方稱呼：${nameHint}` : '',
+    timeHint !== 'auto' ? `回覆時段：${timeHint}` : '',
+  ].filter(Boolean).join('｜');
+
+  const userContent = [];
+
+  if (imageBase64) {
+    userContent.push({ type: 'image', source: { type: 'base64', media_type: imageMediaType, data: imageBase64 } });
+  }
+
+  const textPart = (contextNote ? `【補充資訊】${contextNote}\n\n` : '') +
+    (inputText ? `【消費者訊息】\n${inputText}` : '【請根據截圖中的消費者訊息擬定回覆】');
+
+  userContent.push({ type: 'text', text: textPart });
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userContent }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    const reply = data.content?.[0]?.text || '';
+
+    document.getElementById('output-text').value = reply;
+    document.getElementById('results-section').style.display = 'block';
+    document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setStatus('草稿完成，可直接複製或修改後發送', 'success');
+
+  } catch (e) {
+    setStatus('錯誤：' + e.message, 'error');
+  } finally {
+    document.getElementById('draft-btn').disabled = false;
+  }
+}
+
+function copyReply() {
+  const text = document.getElementById('output-text').value;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const el = document.getElementById('copy-confirm');
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2000);
+  });
+}
+</script>
+
+</body>
+</html>

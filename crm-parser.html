@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ALL IN CRM 解析工具</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black: #1a1a1a;
+      --gray-dark: #4a4a4a;
+      --gray-mid: #9a9a9a;
+      --gray-light: #e8e8e8;
+      --bg: #f7f6f4;
+      --white: #ffffff;
+      --accent: #2c2c2c;
+      --green: #3d6b4f;
+      --red: #9b3a3a;
+    }
+
+    body {
+      font-family: -apple-system, "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: var(--bg);
+      color: var(--black);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    header {
+      background: var(--black);
+      color: var(--white);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    header span {
+      font-size: 12px;
+      color: var(--gray-mid);
+      letter-spacing: 0.06em;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    .card {
+      background: var(--white);
+      border: 1px solid var(--gray-light);
+      border-radius: 4px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gray-mid);
+      margin-bottom: 16px;
+    }
+
+    .row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .field.full { min-width: 100%; }
+
+    label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gray-dark);
+    }
+
+    input[type="text"], input[type="password"], textarea {
+      border: 1px solid var(--gray-light);
+      border-radius: 3px;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--black);
+      background: var(--white);
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--black);
+    }
+
+    textarea {
+      min-height: 220px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--gray-mid);
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 11px 24px;
+      border-radius: 3px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s, background 0.15s;
+    }
+
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--black);
+      color: var(--white);
+    }
+
+    .btn-primary:hover:not(:disabled) { background: #333; }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--black);
+      border: 1px solid var(--gray-light);
+    }
+
+    .btn-secondary:hover:not(:disabled) { border-color: var(--black); }
+
+    .btn-export {
+      background: var(--green);
+      color: var(--white);
+    }
+
+    .btn-export:hover:not(:disabled) { opacity: 0.85; }
+
+    .status {
+      font-size: 12px;
+      color: var(--gray-mid);
+      flex: 1;
+    }
+
+    .status.error { color: var(--red); }
+    .status.success { color: var(--green); }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--gray-light);
+      border-top-color: var(--gray-mid);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results table */
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .result-count {
+      font-size: 13px;
+      color: var(--gray-dark);
+    }
+
+    .result-count strong {
+      font-weight: 700;
+      color: var(--black);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--gray-light);
+      border-radius: 3px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      min-width: 1400px;
+    }
+
+    thead {
+      background: var(--black);
+      color: var(--white);
+    }
+
+    th {
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+      font-size: 11px;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--gray-light);
+      transition: background 0.1s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fafaf9; }
+
+    td {
+      padding: 10px 12px;
+      color: var(--gray-dark);
+      line-height: 1.5;
+      vertical-align: top;
+    }
+
+    td.name { font-weight: 600; color: var(--black); white-space: nowrap; }
+    td.plan { color: var(--black); }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 2px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .tag-new { background: #e8f0eb; color: var(--green); }
+    .tag-returning { background: #ede8e3; color: #7a5c3a; }
+    .tag-referral { background: #e8e8f0; color: #3a3a7a; }
+    .tag-unknown { background: var(--gray-light); color: var(--gray-dark); }
+    .tag-high { background: #e8f0eb; color: var(--green); }
+    .tag-mid { background: #f0ece8; color: #7a6040; }
+    .tag-low { background: var(--gray-light); color: var(--gray-dark); }
+    .tag-plan { background: #1a1a1a; color: #fff; }
+    .tag-exp { background: #e8e8f0; color: #3a3a7a; }
+    .tag-premium { background: #f0e8e8; color: #7a3a3a; }
+
+    #results-section { display: none; }
+
+    .api-key-hint {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .api-key-hint button {
+      padding: 6px 12px;
+      font-size: 10px;
+    }
+
+    .toggle-key {
+      background: transparent;
+      border: 1px solid var(--gray-light);
+      color: var(--gray-dark);
+      padding: 4px 8px;
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>ALL IN — CRM 解析工具</h1>
+  <span>方案客資料抽取 → CSV 匯出</span>
+</header>
+
+<div class="container">
+
+  <!-- API Key -->
+  <div class="card">
+    <div class="card-title">設定</div>
+    <div class="row">
+      <div class="field">
+        <label>Anthropic API Key</label>
+        <div class="api-key-hint">
+          <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off">
+          <button class="toggle-key" onclick="toggleKey()">顯示</button>
+        </div>
+        <span class="hint">儲存於本機瀏覽器，不會外傳。<a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--gray-dark)">取得 API Key →</a></span>
+      </div>
+      <div class="field">
+        <label>日期提示（選填）</label>
+        <input type="text" id="date-hint" placeholder="例：2026-04-19，輔助解析日期">
+        <span class="hint">若文字內只有月日，可在此補充年份</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="card">
+    <div class="card-title">貼入原始 CRM 文字</div>
+    <div class="field full" style="margin-bottom:16px;">
+      <textarea id="raw-text" placeholder="將夥伴的回報文字整段貼在這裡，可包含多個地點、多班、多位客人…"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn-primary" id="parse-btn" onclick="parseText()">解析</button>
+      <button class="btn-secondary" onclick="clearAll()">清除</button>
+      <span class="status" id="status-msg"></span>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results-section">
+    <div class="card">
+      <div class="results-header">
+        <div class="card-title" style="margin-bottom:0;">解析結果</div>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <span class="result-count" id="result-count"></span>
+          <button class="btn-export" onclick="exportCSV()">匯出 CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="result-table">
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>地點</th>
+              <th>回報人員</th>
+              <th>客人姓名</th>
+              <th>年齡輪廓</th>
+              <th>客戶類型</th>
+              <th>決策者</th>
+              <th>來源</th>
+              <th>方案類型</th>
+              <th>方案數量</th>
+              <th>自選禮</th>
+              <th>停留原因</th>
+              <th>最大顧慮</th>
+              <th>成交關鍵</th>
+              <th>客單類型</th>
+              <th>回購潛力</th>
+              <th>擴散可能</th>
+              <th>關鍵購買動機</th>
+            </tr>
+          </thead>
+          <tbody id="result-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const FIELDS = [
+    { key: 'date',                 label: '日期' },
+    { key: 'location',             label: '地點' },
+    { key: 'staff',                label: '回報人員' },
+    { key: 'customer_name',        label: '客人姓名' },
+    { key: 'age_profile',          label: '年齡輪廓' },
+    { key: 'customer_segment',     label: '客戶類型' },
+    { key: 'decision_maker',       label: '決策者' },
+    { key: 'source',               label: '來源' },
+    { key: 'plan_type',            label: '方案類型' },
+    { key: 'plan_quantity',        label: '方案數量' },
+    { key: 'free_gift',            label: '自選禮' },
+    { key: 'attraction',           label: '停留原因' },
+    { key: 'main_concern',         label: '最大顧慮' },
+    { key: 'closing_key',          label: '成交關鍵' },
+    { key: 'order_type',           label: '客單類型' },
+    { key: 'repurchase_potential', label: '回購潛力' },
+    { key: 'referral_potential',   label: '擴散可能' },
+    { key: 'motivation',           label: '關鍵購買動機' },
+  ];
+
+  const keyInput = document.getElementById('api-key');
+  const saved = localStorage.getItem('allin_api_key') || '';
+  keyInput.value = saved;
+  localStorage.setItem('allin_api_key', saved);
+  keyInput.addEventListener('change', () => {
+    localStorage.setItem('allin_api_key', keyInput.value.trim());
+  });
+
+  function toggleKey() {
+    keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
+  }
+
+  function setStatus(msg, type = '') {
+    const el = document.getElementById('status-msg');
+    el.className = 'status' + (type ? ' ' + type : '');
+    el.innerHTML = msg;
+  }
+
+  function clearAll() {
+    document.getElementById('raw-text').value = '';
+    document.getElementById('results-section').style.display = 'none';
+    setStatus('');
+  }
+
+  async function parseText() {
+    const apiKey = keyInput.value.trim();
+    const rawText = document.getElementById('raw-text').value.trim();
+    const dateHint = document.getElementById('date-hint').value.trim();
+
+    if (!apiKey) { setStatus('請先填入 Anthropic API Key', 'error'); return; }
+    if (!rawText) { setStatus('請貼入原始 CRM 文字', 'error'); return; }
+
+    localStorage.setItem('allin_api_key', apiKey);
+
+    const btn = document.getElementById('parse-btn');
+    btn.disabled = true;
+    setStatus('<span class="spinner"></span>解析中，請稍候…');
+
+    const systemPrompt = `你是 ALL IN 品牌的 CRM 資料解析助理。
+請從銷售夥伴的日報文字中，找出每一位有「購買寄領方案」的客人，以 JSON 陣列格式回傳。
+
+每位客人必須包含以下欄位：
+
+【基本欄位】
+- date: 日期（YYYY-MM-DD 格式，若只有月日請結合提示年份判斷）
+- location: 地點（如「中港」「大葉」「大安」）
+- staff: 回報人員姓名
+- customer_name: 客人姓名（若未提及填「不明」）
+- age_profile: 年齡輪廓（如「60+ 貴婦」「30+ 年輕夫妻」）
+- customer_segment: 客戶類型，從以下選擇最接近的：「親子」「銀髮」「上班族」「健身族」「海外」「貴婦」「家庭主婦」「其他」
+- decision_maker: 決策者是誰（如「本人」「先生主導」「孫女影響」「媽媽決定」）
+- source: 來源，只能是「路過」「推薦」「舊客」其中一個
+
+【交易欄位】
+- plan_type: 方案類型（如「全食飲 50 瓶方案」「小全頭 20 包方案」「半半方案」）
+- plan_quantity: 方案數量或組合（精簡描述）
+- free_gift: 自選禮或方案禮內容
+
+【行為欄位】
+- attraction: 停留原因（什麼讓他們靠櫃或留下，如「蒸籠小全頭」「試喝全食飲」「路過好奇」）
+- main_concern: 最大顧慮（如「份量太多」「價格偏高」「效期疑慮」「無明顯顧慮」）
+- closing_key: 成交關鍵（如「試喝體驗」「黑卡專屬優惠」「百貨折扣」「DM」「家人推薦」「朋友轉介」）
+
+【商業價值】
+- order_type: 客單類型，只能是「體驗」「方案」「高單」其中一個（高單 = 同時購買多個方案或加購多品項）
+- repurchase_potential: 回購潛力，只能是「低」「中」「高」其中一個（舊客固定回購=高，第一次買=中，明顯猶豫=低）
+- referral_potential: 擴散可能，如「會，已有帶家人來」「可能，非常喜歡產品」「低，態度較被動」
+- motivation: 關鍵購買動機，用一句話摘要
+
+【口味名稱規定 — 必須使用完整名稱】
+- 「原味」→ 黃豆
+- 「黑五」→ 黑五次方
+- 「紅棗」→ 紅棗核桃
+- 「杏仁」→ 杏仁糙米
+所有欄位中出現的口味，一律使用完整名稱，不使用縮寫。
+
+注意：
+- 只抽取有「購買方案」的客人，單純散買或只是試喝的不納入
+- 若某欄位資訊不明確，填「不明」
+- 只回傳合法 JSON 陣列，不要加任何說明文字、markdown 或 code block`;
+
+    const userPrompt = (dateHint ? `日期提示：${dateHint}\n\n` : '') + `以下是原始文字：\n\n${rawText}`;
+
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userPrompt }]
+        })
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error?.message || `HTTP ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      const raw = data.content?.[0]?.text || '';
+
+      // Strip any accidental markdown fences
+      const cleaned = raw.replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
+      const records = JSON.parse(cleaned);
+
+      if (!Array.isArray(records) || records.length === 0) {
+        throw new Error('未找到符合條件的方案客資料');
+      }
+
+      renderTable(records);
+      setStatus(`找到 <strong>${records.length}</strong> 位方案客`, 'success');
+
+    } catch (e) {
+      setStatus('錯誤：' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  let currentRecords = [];
+
+  function renderTable(records) {
+    currentRecords = records;
+    const tbody = document.getElementById('result-body');
+    tbody.innerHTML = '';
+
+    records.forEach(r => {
+      const tr = document.createElement('tr');
+
+      const sourceTag = {
+        '路過': '<span class="tag tag-unknown">路過</span>',
+        '推薦': '<span class="tag tag-referral">推薦</span>',
+        '舊客': '<span class="tag tag-returning">舊客</span>',
+      }[r.source] || `<span class="tag tag-unknown">${esc(r.source)}</span>`;
+
+      const repurchaseTag = {
+        '高': '<span class="tag tag-high">高</span>',
+        '中': '<span class="tag tag-mid">中</span>',
+        '低': '<span class="tag tag-low">低</span>',
+      }[r.repurchase_potential] || `<span class="tag tag-unknown">${esc(r.repurchase_potential)}</span>`;
+
+      const orderTag = {
+        '方案': '<span class="tag tag-plan">方案</span>',
+        '體驗': '<span class="tag tag-exp">體驗</span>',
+        '高單': '<span class="tag tag-premium">高單</span>',
+      }[r.order_type] || `<span class="tag tag-unknown">${esc(r.order_type)}</span>`;
+
+      tr.innerHTML = `
+        <td>${esc(r.date)}</td>
+        <td>${esc(r.location)}</td>
+        <td>${esc(r.staff)}</td>
+        <td class="name">${esc(r.customer_name)}</td>
+        <td>${esc(r.age_profile)}</td>
+        <td>${esc(r.customer_segment)}</td>
+        <td>${esc(r.decision_maker)}</td>
+        <td>${sourceTag}</td>
+        <td class="plan">${esc(r.plan_type)}</td>
+        <td>${esc(r.plan_quantity)}</td>
+        <td>${esc(r.free_gift)}</td>
+        <td>${esc(r.attraction)}</td>
+        <td>${esc(r.main_concern)}</td>
+        <td>${esc(r.closing_key)}</td>
+        <td>${orderTag}</td>
+        <td>${repurchaseTag}</td>
+        <td>${esc(r.referral_potential)}</td>
+        <td>${esc(r.motivation)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('result-count').innerHTML =
+      `共 <strong>${records.length}</strong> 位方案客`;
+    document.getElementById('results-section').style.display = 'block';
+    document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function esc(v) {
+    if (!v) return '—';
+    return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function exportCSV() {
+    if (!currentRecords.length) return;
+
+    const headers = FIELDS.map(f => f.label);
+    const rows = currentRecords.map(r =>
+      FIELDS.map(f => {
+        const val = r[f.key] ?? '';
+        const s = String(val).replace(/"/g, '""');
+        return `"${s}"`;
+      }).join(',')
+    );
+
+    const csv = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const today = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = `ALLIN_CRM_${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+</script>
+
+</body>
+</html>

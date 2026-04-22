@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ALL IN Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+      background: #f5f4f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 48px 48px 32px;
+      border-bottom: 1px solid #e0ded8;
+      background: #fff;
+    }
+
+    header h1 {
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #1a1a1a;
+    }
+
+    header p {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #999;
+      letter-spacing: 0.04em;
+    }
+
+    main {
+      flex: 1;
+      padding: 48px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      align-content: start;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e0ded8;
+      border-radius: 4px;
+      padding: 32px;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      border-color: #1a1a1a;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    .card-tag {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #999;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: #1a1a1a;
+      margin-bottom: 10px;
+      letter-spacing: 0.01em;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: #888;
+      line-height: 1.7;
+    }
+
+    .card-arrow {
+      margin-top: 24px;
+      font-size: 12px;
+      color: #1a1a1a;
+      letter-spacing: 0.06em;
+    }
+
+    footer {
+      padding: 24px 48px;
+      border-top: 1px solid #e0ded8;
+      background: #fff;
+      font-size: 11px;
+      color: #bbb;
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>ALL IN — Team Dashboard</h1>
+    <p>Internal tools · For team use only</p>
+  </header>
+
+  <main>
+
+    <a class="card" href="crm-parser.html">
+      <div class="card-tag">客服</div>
+      <div class="card-title">CRM 訂單解析</div>
+      <div class="card-desc">貼入 CRM 原始文字，自動解析訂單資訊與出貨內容。</div>
+      <div class="card-arrow">開啟工具 →</div>
+    </a>
+
+    <a class="card" href="cs-reply.html">
+      <div class="card-tag">客服</div>
+      <div class="card-title">客服回覆產生器</div>
+      <div class="card-desc">選擇情境，快速生成符合 ALL IN 語氣的 LINE 客服回覆。</div>
+      <div class="card-arrow">開啟工具 →</div>
+    </a>
+
+    <a class="card" href="quotation-tool/index.html">
+      <div class="card-tag">業務</div>
+      <div class="card-title">報價單產生器</div>
+      <div class="card-desc">填入客戶資訊與品項，自動輸出格式化報價單。</div>
+      <div class="card-arrow">開啟工具 →</div>
+    </a>
+
+  </main>
+
+  <footer>ALL IN · 歐飲國際股份有限公司 · Internal use only</footer>
+
+</body>
+</html>
