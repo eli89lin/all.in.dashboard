@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALL IN 各櫃位銷售統計</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black:      #1a1a1a;
+    --gray-dark:  #4a4a4a;
+    --gray-mid:   #9a9a9a;
+    --gray-light: #e8e8e8;
+    --bg:         #f7f6f4;
+    --white:      #ffffff;
+  }
+
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: var(--bg);
+    color: var(--black);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--black);
+    color: var(--white);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  header a {
+    font-size: 12px;
+    color: var(--gray-mid);
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  header a:hover { color: var(--white); }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 40px 32px 80px; }
+
+  /* ── Upload zone ── */
+  .upload-zone {
+    border: 1.5px dashed var(--gray-light);
+    border-radius: 4px;
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--white);
+    transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 16px;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--black);
+    background: #fafaf9;
+  }
+  .upload-zone p { font-size: 13px; color: #666; line-height: 1.8; }
+  .upload-zone strong { color: var(--black); font-weight: 500; }
+  .upload-zone .hint { font-size: 11px; color: #aaa; margin-top: 4px; }
+  #file-input { display: none; }
+
+  .file-tags { font-size: 12px; color: #555; margin-bottom: 24px; min-height: 20px; }
+  .file-tags span {
+    display: inline-block;
+    background: #e8e5e0;
+    border-radius: 2px;
+    padding: 2px 9px;
+    margin: 2px 4px 2px 0;
+  }
+
+  /* ── Buttons ── */
+  .btn-row { display: flex; gap: 10px; margin-bottom: 48px; }
+  .btn {
+    padding: 10px 24px;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 1.5px solid var(--black);
+    background: var(--black);
+    color: var(--white);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.15s;
+    font-family: inherit;
+  }
+  .btn:hover { background: #333; }
+  .btn.secondary { background: transparent; color: var(--black); }
+  .btn.secondary:hover { background: #f0ede8; }
+  .btn:disabled { opacity: 0.35; cursor: default; }
+
+  /* ── Section label ── */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gray-mid);
+    margin-bottom: 12px;
+    margin-top: 48px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--gray-light);
+  }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; margin-bottom: 4px; }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13px;
+    background: var(--white);
+    border: 1px solid var(--gray-light);
+  }
+
+  thead th {
+    background: var(--black);
+    color: var(--white);
+    font-weight: 400;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    padding: 11px 16px;
+    text-align: center;
+    white-space: nowrap;
+    border: none;
+  }
+  thead th:first-child { text-align: left; }
+
+  tbody tr { border-bottom: 1px solid #f0ede8; }
+  tbody tr:last-child { border-bottom: none; }
+
+  td {
+    padding: 9px 16px;
+    text-align: center;
+    white-space: nowrap;
+    color: var(--gray-dark);
+    font-size: 13px;
+  }
+  td:first-child { text-align: left; }
+
+  /* Category header */
+  tr.cat-row td {
+    background: #f5f3ef;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #888;
+    padding: 7px 16px;
+    border-bottom: none;
+  }
+
+  /* Subtotal */
+  tr.sub-row td {
+    background: #fafaf9;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--black);
+    border-top: 1px solid var(--gray-light);
+    border-bottom: 2px solid var(--gray-light);
+  }
+
+  /* Grand total */
+  tr.total-row td {
+    background: var(--black);
+    color: var(--white);
+    font-weight: 600;
+    font-size: 13px;
+    border: none;
+  }
+
+  td.val  { color: var(--black); font-weight: 500; }
+  td.dash { color: #ddd; }
+  td.sum  { font-weight: 700; color: var(--black); }
+  tr.total-row td.sum { color: var(--white); }
+
+  #output { display: none; }
+
+  #date-label {
+    font-size: 11px;
+    color: var(--gray-mid);
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+
+  @media (max-width: 640px) {
+    header { padding: 18px 20px; }
+    .container { padding: 28px 16px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>各櫃位銷售統計</h1>
+  <a href="index.html">← 返回總覽</a>
+</header>
+
+<div class="container">
+
+  <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <p><strong>點擊上傳</strong>或將檔案拖曳至此</p>
+    <p style="margin-top:5px;font-size:12px;color:#888;">支援 .xls / .xlsx，可同時選取多個檔案</p>
+    <p class="hint">檔名含【櫃位名稱】將自動識別，例如：【新光】訂單明細 0422.xls</p>
+  </div>
+  <input type="file" id="file-input" accept=".xls,.xlsx" multiple>
+
+  <div class="file-tags" id="file-tags"></div>
+
+  <div class="btn-row">
+    <button class="btn" id="run-btn" onclick="runReport()" disabled>產生統計表</button>
+    <button class="btn secondary" onclick="clearAll()">清除</button>
+  </div>
+
+  <div id="output">
+    <div id="date-label"></div>
+
+    <div class="section-label">銷售品項統計</div>
+    <div class="table-wrap"><table id="sales-table"></table></div>
+
+    <div class="section-label">寄領方案品項統計</div>
+    <div class="table-wrap"><table id="jiling-table"></table></div>
+  </div>
+
+</div>
+
+<script>
+// ── Constants ────────────────────────────────────────────
+const FLAVOR_MAP = [
+  ['黑五次方','黑五次方'],['紅棗核桃','紅棗核桃'],['杏仁糙米','杏仁糙米'],
+  ['黃豆','黃豆'],['南瓜','南瓜'],['毛豆','毛豆'],['紫心甘薯','紫心甘薯'],
+  ['黑五','黑五次方'],['紅棗','紅棗核桃'],['杏仁','杏仁糙米'],['紫薯','紫心甘薯'],
+].sort((a,b) => b[0].length - a[0].length);
+
+const CAT_KEYWORDS = ['全食飲','小全頭','全方麵','全食圈','厚果醬'];
+const CAT_ORDER    = ['全食飲','小全頭','全方麵','全食圈','厚果醬','其他'];
+
+function getCategory(name) {
+  for (const k of CAT_KEYWORDS) if (name.includes(k)) return k;
+  return '其他';
+}
+
+function normalizeFlavor(name) {
+  name = name.replace(/【[^】]*】/g,'').trim();
+  name = name.replace(/[ｘx][１1]$/,'').trim();
+  name = name.replace(/\d+入$/,'').trim();
+  name = name.replace(/\s*[｜|]\s*/g,' ').trim();
+  for (const k of CAT_KEYWORDS) name = name.split(k).join('').trim();
+  for (const [k,v] of FLAVOR_MAP) if (name.includes(k)) return v;
+  return name || '原味';
+}
+
+function extractStoreName(filename) {
+  const m = filename.match(/【([^】]+)】/);
+  return m ? m[1] : filename.replace(/\.[^.]+$/,'');
+}
+
+// ── File handling ─────────────────────────────────────────
+const uploaded = {};
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+document.getElementById('file-input').addEventListener('change', e => handleFiles(e.target.files));
+
+function handleFiles(files) {
+  for (const f of files) uploaded[extractStoreName(f.name)] = f;
+  renderTags();
+}
+
+function renderTags() {
+  const keys = Object.keys(uploaded);
+  document.getElementById('file-tags').innerHTML = keys.map(k => `<span>${k}</span>`).join('');
+  document.getElementById('run-btn').disabled = keys.length === 0;
+}
+
+function clearAll() {
+  for (const k in uploaded) delete uploaded[k];
+  renderTags();
+  document.getElementById('output').style.display = 'none';
+  document.getElementById('file-input').value = '';
+}
+
+// ── Parse XLS ─────────────────────────────────────────────
+function parseFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb   = XLSX.read(e.target.result, { type: 'array' });
+        const ws   = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        const hdr  = rows[0];
+        const nc   = hdr.indexOf('商品名稱');
+        const qc   = hdr.indexOf('數量');
+        if (nc < 0 || qc < 0) { reject('找不到欄位'); return; }
+        const sales = {}, jiling = {};
+        for (let i = 1; i < rows.length; i++) {
+          const name = String(rows[i][nc] || '').trim();
+          if (!name) continue;
+          const qty = parseInt(rows[i][qc]) || 0;
+          const key = `${getCategory(name)}||${normalizeFlavor(name)}`;
+          if (name.includes('寄領方案')) jiling[key] = (jiling[key] || 0) + qty;
+          else                           sales[key]  = (sales[key]  || 0) + qty;
+        }
+        resolve({ sales, jiling });
+      } catch(err) { reject(err); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// ── Build table ───────────────────────────────────────────
+function buildTable(storeData, stores, el) {
+  const catItems = {};
+  for (const cat of CAT_ORDER) catItems[cat] = new Set();
+  for (const s of stores)
+    for (const key of Object.keys(storeData[s])) {
+      const [cat] = key.split('||');
+      if (!catItems[cat]) catItems[cat] = new Set();
+      catItems[cat].add(key.split('||')[1]);
+    }
+
+  const th = (t, left) => `<th${left ? ' style="text-align:left"' : ''}>${t}</th>`;
+  let html = `<thead><tr>${th('品項',true)}${stores.map(s=>th(s)).join('')}${th('合計')}</tr></thead><tbody>`;
+
+  const grand = Object.fromEntries(stores.map(s=>[s,0]));
+  let grandTotal = 0;
+
+  for (const cat of CAT_ORDER) {
+    const items = [...(catItems[cat]||[])].sort();
+    if (!items.length) continue;
+
+    html += `<tr class="cat-row"><td colspan="${stores.length+2}">${cat}</td></tr>`;
+
+    const sub = Object.fromEntries(stores.map(s=>[s,0]));
+    let subTotal = 0;
+
+    for (const flv of items) {
+      const key = `${cat}||${flv}`;
+      let rowSum = 0;
+      html += `<tr><td>${cat}－${flv}</td>`;
+      for (const s of stores) {
+        const v = storeData[s][key] || 0;
+        html += v ? `<td class="val">${v}</td>` : `<td class="dash">—</td>`;
+        rowSum += v; sub[s] += v; grand[s] += v;
+      }
+      subTotal += rowSum; grandTotal += rowSum;
+      html += `<td class="sum">${rowSum}</td></tr>`;
+    }
+
+    html += `<tr class="sub-row"><td>${cat} 小計</td>`;
+    for (const s of stores) html += `<td>${sub[s]||'—'}</td>`;
+    html += `<td class="sum">${subTotal}</td></tr>`;
+  }
+
+  html += `<tr class="total-row"><td>總計</td>`;
+  for (const s of stores) html += `<td>${grand[s]}</td>`;
+  html += `<td class="sum">${grandTotal}</td></tr></tbody>`;
+  el.innerHTML = html;
+}
+
+// ── Run ───────────────────────────────────────────────────
+async function runReport() {
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true; btn.textContent = '處理中…';
+
+  const stores = Object.keys(uploaded).sort();
+  const allSales  = Object.fromEntries(stores.map(s=>[s,{}]));
+  const allJiling = Object.fromEntries(stores.map(s=>[s,{}]));
+
+  try {
+    await Promise.all(stores.map(async s => {
+      const { sales, jiling } = await parseFile(uploaded[s]);
+      allSales[s]  = sales;
+      allJiling[s] = jiling;
+    }));
+
+    const fn   = Object.values(uploaded)[0].name;
+    const dm   = fn.match(/(\d{4})/);
+    const date = dm ? dm[1].replace(/(\d{2})(\d{2})/, '$1 / $2') : '';
+    document.getElementById('date-label').textContent = date ? `日期：${date}` : '';
+
+    buildTable(allSales,  stores, document.getElementById('sales-table'));
+    buildTable(allJiling, stores, document.getElementById('jiling-table'));
+
+    document.getElementById('output').style.display = 'block';
+    document.getElementById('output').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e) {
+    alert('讀取失敗：' + e);
+  }
+
+  btn.disabled = false; btn.textContent = '產生統計表';
+}
+</script>
+</body>
+</html>
