@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALL IN 素材索引</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black:      #1a1a1a;
+    --gray-dark:  #4a4a4a;
+    --gray-mid:   #9a9a9a;
+    --gray-light: #e8e8e8;
+    --bg:         #f7f6f4;
+    --white:      #ffffff;
+  }
+
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: var(--bg);
+    color: var(--black);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--black);
+    color: var(--white);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+  }
+  header h1 { font-size: 15px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; }
+  header a  { font-size: 12px; color: var(--gray-mid); text-decoration: none; letter-spacing: 0.06em; transition: color 0.15s; }
+  header a:hover { color: var(--white); }
+
+  /* ── Upload zone ── */
+  #upload-section { padding: 40px 40px 0; }
+
+  .drop-zone {
+    border: 1.5px dashed var(--gray-light);
+    border-radius: 4px;
+    background: var(--white);
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--black); background: #fafaf9; }
+  .drop-zone p { font-size: 13px; color: #666; line-height: 1.9; }
+  .drop-zone strong { color: var(--black); font-weight: 500; }
+  .drop-zone .hint { font-size: 11px; color: #aaa; margin-top: 4px; }
+  #folder-input { display: none; }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 40px 0;
+    flex-wrap: wrap;
+  }
+  .toolbar input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+    max-width: 340px;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-family: inherit;
+    border: 1px solid var(--gray-light);
+    border-radius: 2px;
+    background: var(--white);
+    outline: none;
+    color: var(--black);
+    transition: border-color 0.15s;
+  }
+  .toolbar input[type="text"]:focus { border-color: var(--black); }
+  .toolbar input::placeholder { color: var(--gray-mid); }
+
+  .btn {
+    padding: 9px 20px;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 1.5px solid var(--black);
+    background: var(--black);
+    color: var(--white);
+    cursor: pointer;
+    border-radius: 2px;
+    font-family: inherit;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #333; }
+  .btn.secondary { background: transparent; color: var(--black); }
+  .btn.secondary:hover { background: #f0ede8; }
+
+  .file-count {
+    font-size: 11px;
+    color: var(--gray-mid);
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  /* ── Nav pills ── */
+  #folder-nav {
+    padding: 16px 40px 0;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  #folder-nav a {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--gray-mid);
+    text-decoration: none;
+    padding: 4px 12px;
+    border: 1px solid var(--gray-light);
+    border-radius: 2px;
+    background: var(--white);
+    transition: all 0.15s;
+  }
+  #folder-nav a:hover { border-color: var(--black); color: var(--black); }
+
+  /* ── Main content ── */
+  #main { padding: 28px 40px 80px; }
+
+  .folder-section { margin-bottom: 48px; }
+
+  .folder-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--black);
+    margin-bottom: 20px;
+  }
+  .folder-label {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--black);
+  }
+  .folder-sub-label {
+    font-size: 11px;
+    color: var(--gray-mid);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Item grid ── */
+  .item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+  }
+
+  .item {
+    background: var(--white);
+    border: 1px solid var(--gray-light);
+    border-radius: 3px;
+    overflow: hidden;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .item:hover { border-color: #bbb; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+
+  .thumb {
+    width: 100%;
+    aspect-ratio: 1;
+    background: #f0ede8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 6px;
+  }
+  .thumb canvas {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .thumb .placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .thumb .placeholder .ext {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--gray-mid);
+  }
+
+  .ext-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    background: rgba(26,26,26,0.5);
+    color: #fff;
+    padding: 2px 5px;
+    border-radius: 2px;
+    text-transform: uppercase;
+  }
+
+  .item-name {
+    font-size: 10px;
+    color: #555;
+    padding: 6px 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+  }
+
+  /* ── States ── */
+  #upload-section.hidden,
+  .toolbar.hidden,
+  #folder-nav.hidden,
+  #main.hidden { display: none; }
+
+  .item.filtered { display: none; }
+
+  /* Progress */
+  #progress-bar-wrap {
+    padding: 16px 40px 0;
+    display: none;
+  }
+  #progress-bar-wrap .label {
+    font-size: 11px;
+    color: var(--gray-mid);
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  #progress-bar-bg {
+    height: 2px;
+    background: var(--gray-light);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  #progress-bar-fill {
+    height: 100%;
+    background: var(--black);
+    width: 0%;
+    transition: width 0.1s;
+  }
+
+  @media (max-width: 640px) {
+    header { padding: 18px 20px; }
+    #upload-section, .toolbar, #folder-nav, #main { padding-left: 20px; padding-right: 20px; }
+    .item-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>素材索引</h1>
+  <a href="index.html">← 返回總覽</a>
+</header>
+
+<div id="upload-section">
+  <div class="drop-zone" id="drop-zone" onclick="document.getElementById('folder-input').click()">
+    <p><strong>點擊選取資料夾</strong>或將資料夾拖曳至此</p>
+    <p style="margin-top:5px;font-size:12px;color:#888;">支援 JPG、PNG、GIF、PDF、AI、PSD</p>
+    <p class="hint">可同時選取多個資料夾</p>
+  </div>
+  <input type="file" id="folder-input" webkitdirectory multiple
+         accept=".jpg,.jpeg,.png,.gif,.pdf,.ai,.psd,.eps,.svg">
+</div>
+
+<div id="progress-bar-wrap">
+  <div class="label" id="progress-label">載入中…</div>
+  <div id="progress-bar-bg"><div id="progress-bar-fill"></div></div>
+</div>
+
+<div class="toolbar hidden" id="toolbar">
+  <input type="text" id="search" placeholder="搜尋檔名…">
+  <span class="file-count" id="file-count"></span>
+  <button class="btn secondary" onclick="resetAll()">重新選取</button>
+</div>
+
+<div id="folder-nav" class="hidden"></div>
+<div id="main" class="hidden"></div>
+
+<script>
+// ── PDF.js setup ──────────────────────────────────────────
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const IMG_EXTS = new Set(['jpg','jpeg','png','gif','webp','svg']);
+const PDF_EXTS = new Set(['pdf']);
+
+// ── Drag & drop ───────────────────────────────────────────
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag-over');
+  handleDrop(e.dataTransfer.items);
+});
+document.getElementById('folder-input').addEventListener('change', e => {
+  processFiles([...e.target.files]);
+});
+
+async function handleDrop(items) {
+  const files = [];
+  const entries = [...items].map(i => i.webkitGetAsEntry()).filter(Boolean);
+  async function walk(entry, path) {
+    if (entry.isFile) {
+      return new Promise(r => entry.file(f => {
+        Object.defineProperty(f, 'webkitRelativePath', { value: path + f.name });
+        files.push(f); r();
+      }));
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      return new Promise(r => reader.readEntries(async entries => {
+        for (const e of entries) await walk(e, path + entry.name + '/');
+        r();
+      }));
+    }
+  }
+  for (const entry of entries) await walk(entry, '');
+  processFiles(files);
+}
+
+// ── Process ───────────────────────────────────────────────
+function processFiles(files) {
+  const ALLOWED = new Set(['jpg','jpeg','png','gif','webp','svg','pdf','ai','psd','eps']);
+  const filtered = files.filter(f => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    return ALLOWED.has(ext);
+  });
+  if (!filtered.length) return;
+
+  // Group by top-level folder
+  const folders = {};
+  for (const f of filtered) {
+    const parts = (f.webkitRelativePath || f.name).split('/');
+    const folder = parts.length > 1 ? parts[0] : '（未分類）';
+    if (!folders[folder]) folders[folder] = [];
+    folders[folder].push(f);
+  }
+
+  renderIndex(folders);
+}
+
+function renderIndex(folders) {
+  document.getElementById('upload-section').classList.add('hidden');
+
+  const total = Object.values(folders).reduce((s, a) => s + a.length, 0);
+  document.getElementById('file-count').textContent = `${total} 個檔案 · ${Object.keys(folders).length} 個資料夾`;
+  document.getElementById('toolbar').classList.remove('hidden');
+
+  // Nav
+  const nav = document.getElementById('folder-nav');
+  nav.innerHTML = Object.keys(folders).sort().map(f =>
+    `<a href="#folder-${slugify(f)}">${f}</a>`
+  ).join('');
+  nav.classList.remove('hidden');
+
+  // Main
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  main.classList.remove('hidden');
+
+  const sortedFolders = Object.keys(folders).sort();
+  let rendered = 0;
+
+  const pbWrap = document.getElementById('progress-bar-wrap');
+  const pbFill  = document.getElementById('progress-bar-fill');
+  const pbLabel = document.getElementById('progress-label');
+  pbWrap.style.display = 'block';
+
+  for (const folder of sortedFolders) {
+    const files = folders[folder].sort((a,b) => a.name.localeCompare(b.name));
+
+    const section = document.createElement('div');
+    section.className = 'folder-section';
+    section.id = `folder-${slugify(folder)}`;
+
+    section.innerHTML = `
+      <div class="folder-header">
+        <span class="folder-label">${folder}</span>
+        <span class="folder-sub-label">${files.length} 個檔案</span>
+      </div>
+      <div class="item-grid" id="grid-${slugify(folder)}"></div>`;
+    main.appendChild(section);
+
+    const grid = section.querySelector('.item-grid');
+
+    for (const file of files) {
+      const ext = file.name.split('.').pop().toLowerCase();
+      const nameNoExt = file.name.replace(/\.[^.]+$/, '');
+
+      const item = document.createElement('div');
+      item.className = 'item';
+      item.dataset.name = file.name.toLowerCase();
+      item.innerHTML = `
+        <div class="thumb" id="thumb-${slugify(file.name + Math.random())}">
+          <div class="placeholder"><span class="ext">${ext.toUpperCase()}</span></div>
+          <span class="ext-badge">${ext.toUpperCase()}</span>
+        </div>
+        <div class="item-name" title="${file.name}">${nameNoExt}</div>`;
+      grid.appendChild(item);
+
+      const thumbEl = item.querySelector('.thumb');
+
+      if (IMG_EXTS.has(ext)) {
+        const url = URL.createObjectURL(file);
+        const img = document.createElement('img');
+        img.src = url;
+        img.loading = 'lazy';
+        img.onload = () => {
+          thumbEl.innerHTML = `<span class="ext-badge">${ext.toUpperCase()}</span>`;
+          thumbEl.insertBefore(img, thumbEl.firstChild);
+        };
+      } else if (PDF_EXTS.has(ext)) {
+        renderPdfThumb(file, thumbEl, ext);
+      }
+
+      rendered++;
+      const pct = Math.round((rendered / total) * 100);
+      pbFill.style.width = pct + '%';
+      pbLabel.textContent = `載入中… ${rendered} / ${total}`;
+    }
+  }
+
+  pbWrap.style.display = 'none';
+}
+
+async function renderPdfThumb(file, thumbEl, ext) {
+  try {
+    const url = URL.createObjectURL(file);
+    const pdf = await pdfjsLib.getDocument(url).promise;
+    const page = await pdf.getPage(1);
+    const vp = page.getViewport({ scale: 0.5 });
+    const canvas = document.createElement('canvas');
+    canvas.width  = vp.width;
+    canvas.height = vp.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    thumbEl.innerHTML = `<span class="ext-badge">${ext.toUpperCase()}</span>`;
+    thumbEl.insertBefore(canvas, thumbEl.firstChild);
+    URL.revokeObjectURL(url);
+  } catch(e) { /* keep placeholder */ }
+}
+
+// ── Search ────────────────────────────────────────────────
+document.getElementById('search').addEventListener('input', function() {
+  const q = this.value.toLowerCase().trim();
+  document.querySelectorAll('.item').forEach(el => {
+    el.classList.toggle('filtered', q !== '' && !el.dataset.name.includes(q));
+  });
+  document.querySelectorAll('.folder-section').forEach(sec => {
+    const visible = sec.querySelectorAll('.item:not(.filtered)').length > 0;
+    sec.style.display = visible ? '' : 'none';
+  });
+});
+
+function resetAll() {
+  document.getElementById('upload-section').classList.remove('hidden');
+  document.getElementById('toolbar').classList.add('hidden');
+  document.getElementById('folder-nav').classList.add('hidden');
+  document.getElementById('main').classList.add('hidden');
+  document.getElementById('folder-input').value = '';
+  document.getElementById('search').value = '';
+  document.getElementById('main').innerHTML = '';
+  document.getElementById('folder-nav').innerHTML = '';
+}
+
+function slugify(s) {
+  return s.replace(/[^a-zA-Z0-9一-鿿]/g, '-');
+}
+</script>
+</body>
+</html>
