@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ALL IN 客人輪廓解析</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black: #1a1a1a;
+      --gray-dark: #4a4a4a;
+      --gray-mid: #9a9a9a;
+      --gray-light: #e8e8e8;
+      --bg: #f7f6f4;
+      --white: #ffffff;
+      --green: #3d6b4f;
+      --red: #9b3a3a;
+      --amber: #7a6040;
+      --blue: #3a3a7a;
+    }
+
+    body {
+      font-family: -apple-system, "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: var(--bg);
+      color: var(--black);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--black);
+      color: var(--white);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    header span {
+      font-size: 12px;
+      color: var(--gray-mid);
+      letter-spacing: 0.06em;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    .card {
+      background: var(--white);
+      border: 1px solid var(--gray-light);
+      border-radius: 4px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gray-mid);
+      margin-bottom: 16px;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gray-mid);
+      padding: 6px 0 4px;
+      border-bottom: 1px solid var(--gray-light);
+      margin: 8px 0 4px;
+    }
+
+    .row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .field.full { min-width: 100%; }
+
+    label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gray-dark);
+    }
+
+    input[type="text"], input[type="password"], textarea {
+      border: 1px solid var(--gray-light);
+      border-radius: 3px;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--black);
+      background: var(--white);
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--black);
+    }
+
+    textarea {
+      min-height: 220px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--gray-mid);
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 11px 24px;
+      border-radius: 3px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s, background 0.15s;
+    }
+
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary { background: var(--black); color: var(--white); }
+    .btn-primary:hover:not(:disabled) { background: #333; }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--black);
+      border: 1px solid var(--gray-light);
+    }
+    .btn-secondary:hover:not(:disabled) { border-color: var(--black); }
+
+    .btn-export { background: var(--green); color: var(--white); }
+    .btn-export:hover:not(:disabled) { opacity: 0.85; }
+
+    .status { font-size: 12px; color: var(--gray-mid); flex: 1; }
+    .status.error { color: var(--red); }
+    .status.success { color: var(--green); }
+
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid var(--gray-light);
+      border-top-color: var(--gray-mid);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .result-count { font-size: 13px; color: var(--gray-dark); }
+    .result-count strong { font-weight: 700; color: var(--black); }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--gray-light);
+      border-radius: 3px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      min-width: 1600px;
+    }
+
+    /* column group headers */
+    .col-group {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 5px 8px;
+      color: var(--white);
+    }
+    .cg-where { background: #2c3a2c; }
+    .cg-who   { background: #2c2c3a; }
+    .cg-how   { background: #3a2c2c; }
+    .cg-why   { background: #3a3020; }
+    .cg-and   { background: #2c3838; }
+
+    thead tr.header-row {
+      background: var(--black);
+      color: var(--white);
+    }
+
+    th {
+      padding: 9px 12px;
+      text-align: left;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+      font-size: 11px;
+      border-right: 1px solid #333;
+    }
+    th:last-child { border-right: none; }
+
+    /* column group dividers in tbody */
+    td.group-start { border-left: 2px solid var(--gray-light); }
+
+    tbody tr {
+      border-bottom: 1px solid var(--gray-light);
+      transition: background 0.1s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fafaf9; }
+
+    td {
+      padding: 10px 12px;
+      color: var(--gray-dark);
+      line-height: 1.5;
+      vertical-align: top;
+      border-right: 1px solid var(--gray-light);
+    }
+    td:last-child { border-right: none; }
+
+    td.name { font-weight: 600; color: var(--black); white-space: nowrap; }
+    td.plan  { color: var(--black); }
+    td.notes { max-width: 260px; white-space: pre-wrap; font-size: 11px; }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 2px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      margin: 1px 2px 1px 0;
+    }
+
+    /* 客群類型 */
+    .tag-system   { background: #e8f0eb; color: var(--green); }
+    .tag-problem  { background: #e8e8f0; color: var(--blue); }
+    .tag-feel     { background: #f0e8ec; color: #7a3a58; }
+
+    /* 次要特徵 */
+    .tag-trait    { background: #f0ece6; color: var(--amber); }
+
+    /* 來源 */
+    .tag-walk     { background: var(--gray-light); color: var(--gray-dark); }
+    .tag-referral { background: #e8e8f0; color: var(--blue); }
+    .tag-returning{ background: #ede8e3; color: var(--amber); }
+    .tag-online   { background: #e8f0eb; color: var(--green); }
+
+    /* 性別 */
+    .tag-f { background: #f0e8ec; color: #7a3a58; }
+    .tag-m { background: #e8ecf0; color: #3a587a; }
+
+    /* 擴散 */
+    .tag-spread-high { background: #e8f0eb; color: var(--green); }
+    .tag-spread-mid  { background: #f0ece8; color: var(--amber); }
+    .tag-spread-low  { background: var(--gray-light); color: var(--gray-dark); }
+
+    #results-section { display: none; }
+
+    .toggle-key {
+      background: transparent;
+      border: 1px solid var(--gray-light);
+      color: var(--gray-dark);
+      padding: 4px 8px;
+      font-size: 10px;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+    .api-key-hint { display: flex; align-items: center; gap: 8px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>ALL IN — 客人輪廓解析</h1>
+  <span>Where · Who · How · Why · And</span>
+</header>
+
+<div class="container">
+
+  <!-- 設定 -->
+  <div class="card">
+    <div class="card-title">設定</div>
+    <div class="row">
+      <div class="field">
+        <label>Anthropic API Key</label>
+        <div class="api-key-hint">
+          <input type="password" id="api-key" placeholder="sk-ant-…" autocomplete="off">
+          <button class="toggle-key" onclick="toggleKey()">顯示</button>
+        </div>
+        <span class="hint">儲存於本機瀏覽器，不會外傳。<a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--gray-dark)">取得 API Key →</a></span>
+      </div>
+      <div class="field">
+        <label>日期提示（選填）</label>
+        <input type="text" id="date-hint" placeholder="例：2026-05-04，輔助解析日期">
+        <span class="hint">若文字內只有月日，可在此補充年份</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 輸入 -->
+  <div class="card">
+    <div class="card-title">貼入原始銷售回報文字</div>
+    <div class="field full" style="margin-bottom:16px;">
+      <textarea id="raw-text" placeholder="將夥伴的回報文字整段貼在這裡，可包含多個地點、多班、多位客人…"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn-primary" id="parse-btn" onclick="parseText()">解析</button>
+      <button class="btn-secondary" onclick="clearAll()">清除</button>
+      <span class="status" id="status-msg"></span>
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div id="results-section">
+    <div class="card">
+      <div class="results-header">
+        <div class="card-title" style="margin-bottom:0;">解析結果</div>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <span class="result-count" id="result-count"></span>
+          <button class="btn-export" onclick="exportCSV()">匯出 CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="result-table">
+          <thead>
+            <tr>
+              <th colspan="5" class="col-group cg-where">Where？</th>
+              <th colspan="6" class="col-group cg-who">Who？</th>
+              <th colspan="1" class="col-group cg-how">How？</th>
+              <th colspan="2" class="col-group cg-why">Why？</th>
+              <th colspan="2" class="col-group cg-and">And…</th>
+            </tr>
+            <tr class="header-row">
+              <th>日期</th>
+              <th>銷售員</th>
+              <th>地點</th>
+              <th>購買方案＋贈品</th>
+              <th>散買紀錄</th>
+              <th class="group-start">顧客姓名</th>
+              <th>性別</th>
+              <th>年齡</th>
+              <th>職業</th>
+              <th>客群類型</th>
+              <th>次要特徵</th>
+              <th class="group-start">來源</th>
+              <th class="group-start">成交關鍵</th>
+              <th>最大阻礙</th>
+              <th class="group-start">擴散可能</th>
+              <th>備註</th>
+            </tr>
+          </thead>
+          <tbody id="result-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const FIELDS = [
+    { key: 'date',             label: '日期' },
+    { key: 'staff',            label: '銷售員' },
+    { key: 'location',         label: '地點' },
+    { key: 'plan_with_gift',   label: '購買方案＋贈品' },
+    { key: 'retail_record',    label: '散買紀錄' },
+    { key: 'customer_name',    label: '顧客姓名' },
+    { key: 'gender',           label: '性別' },
+    { key: 'age',              label: '年齡' },
+    { key: 'occupation',       label: '職業' },
+    { key: 'customer_type',    label: '客群類型' },
+    { key: 'secondary_traits', label: '次要特徵' },
+    { key: 'source',           label: '來源' },
+    { key: 'closing_key',      label: '成交關鍵' },
+    { key: 'main_obstacle',    label: '最大阻礙' },
+    { key: 'referral_potential', label: '擴散可能' },
+    { key: 'notes',            label: '備註' },
+  ];
+
+  // Persist API key
+  const keyInput = document.getElementById('api-key');
+  keyInput.value = localStorage.getItem('allin_api_key') || '';
+  keyInput.addEventListener('change', () => {
+    localStorage.setItem('allin_api_key', keyInput.value.trim());
+  });
+
+  function toggleKey() {
+    keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
+  }
+
+  function setStatus(msg, type = '') {
+    const el = document.getElementById('status-msg');
+    el.className = 'status' + (type ? ' ' + type : '');
+    el.innerHTML = msg;
+  }
+
+  function clearAll() {
+    document.getElementById('raw-text').value = '';
+    document.getElementById('results-section').style.display = 'none';
+    setStatus('');
+  }
+
+  async function parseText() {
+    const apiKey = keyInput.value.trim();
+    const rawText = document.getElementById('raw-text').value.trim();
+    const dateHint = document.getElementById('date-hint').value.trim();
+
+    if (!apiKey) { setStatus('請先填入 Anthropic API Key', 'error'); return; }
+    if (!rawText) { setStatus('請貼入原始回報文字', 'error'); return; }
+
+    localStorage.setItem('allin_api_key', apiKey);
+
+    const btn = document.getElementById('parse-btn');
+    btn.disabled = true;
+    setStatus('<span class="spinner"></span>解析中，請稍候…');
+
+    const systemPrompt = `你是 ALL IN 品牌的客人輪廓解析助理。
+請從銷售夥伴的回報文字中，找出每一位有實際購買（方案或散買皆納入）的客人，以 JSON 陣列格式回傳。
+若某筆交易只有試喝、無成交，可忽略。
+
+每位客人必須包含以下欄位：
+
+【Where？— 交易情境】
+- date: 日期（YYYY-MM-DD，若只有月日請結合提示年份）
+- staff: 銷售員姓名（回報者）
+- location: 地點（如「中港」「大葉」「大安」「信義新光」）
+- plan_with_gift: 購買的方案名稱＋贈品內容（如「全食飲50瓶方案，贈厚果醬*1」；無方案填「無」）
+- retail_record: 散買品項與數量（如「厚果醬*2、全食圈南瓜*1」；無散買填「無」）
+
+【Who？— 客人輪廓】
+- customer_name: 顧客姓名（不明則填「不明」）
+- gender: 性別，只能是「女」「男」「不明」其中一個
+- age: 年齡或年齡區間（如「35」「40-50」「60+」「不明」）
+- occupation: 職業或身份（如「護理師」「家庭主婦」「健身教練」「不明」）
+- customer_type: 客群類型，從以下三者選最符合的一個：
+    「生活系統型」— 追求穩定的日常，喜歡把產品融入固定習慣
+    「解決問題型」— 有明確需求，需要一個方便、有效率的解法
+    「感受驅動型」— 買的是一種感覺、品牌認同或生活方式
+- secondary_traits: 次要特徵，可從以下多選（逗號分隔），無則填「無」：
+    「家庭使用」（有為小孩／長輩／另一半購買）
+    「忙碌上班族」
+    「飲控/健身」
+    「限領/宅配」（訂閱寄領或宅配方案）
+    「送禮需求」
+    「品牌粉絲」（已熟悉品牌、主動回購）
+    「網紅粉絲」（因 KOL 或社群影響而來）
+
+【How？— 認識來源】
+- source: 來源，只能是「路過」「朋友推薦」「舊客回購」「社群/網路」其中一個
+
+【Why？— 心理動機】
+- closing_key: 成交關鍵，簡短描述（如「試喝後喜歡」「女兒推薦」「百貨折扣」「品牌理念認同」）
+- main_obstacle: 最大阻礙，簡短描述（如「份量太多」「價格偏高」「效期疑慮」「無明顯阻礙」）
+
+【And…— 延伸資訊】
+- referral_potential: 擴散可能，一句話描述（如「高，已邀約朋友同行」「中，會分享給家人」「低，態度較被動」）
+- notes: 備註，食用情境、過敏、亮點故事、特殊需求等（無則填「無」）
+
+【口味名稱規定 — 必須使用完整名稱】
+- 「原味」→ 黃豆
+- 「黑五」→ 黑五次方
+- 「紅棗」→ 紅棗核桃
+- 「杏仁」→ 杏仁糙米
+所有欄位中出現的口味，一律使用完整名稱，不使用縮寫。
+
+注意：
+- 有實際購買（方案或散買）才納入，純試喝不納入
+- 若某欄位資訊不明確，填「不明」
+- 只回傳合法 JSON 陣列，不要加任何說明文字、markdown 或 code block`;
+
+    const userPrompt = (dateHint ? `日期提示：${dateHint}\n\n` : '') + `以下是原始文字：\n\n${rawText}`;
+
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userPrompt }]
+        })
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error?.message || `HTTP ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      const raw = data.content?.[0]?.text || '';
+      const cleaned = raw.replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
+      const records = JSON.parse(cleaned);
+
+      if (!Array.isArray(records) || records.length === 0) {
+        throw new Error('未找到符合條件的客人資料');
+      }
+
+      renderTable(records);
+      setStatus(`找到 <strong>${records.length}</strong> 位客人`, 'success');
+
+    } catch (e) {
+      setStatus('錯誤：' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  let currentRecords = [];
+
+  function renderTable(records) {
+    currentRecords = records;
+    const tbody = document.getElementById('result-body');
+    tbody.innerHTML = '';
+
+    records.forEach(r => {
+      const tr = document.createElement('tr');
+
+      // 客群類型 tag
+      const typeMap = {
+        '生活系統型': 'tag-system',
+        '解決問題型': 'tag-problem',
+        '感受驅動型': 'tag-feel',
+      };
+      const typeClass = typeMap[r.customer_type] || 'tag-unknown';
+      const typeTag = `<span class="tag ${typeClass}">${esc(r.customer_type)}</span>`;
+
+      // 次要特徵 tags
+      const traits = (r.secondary_traits || '').split(/[,，]/).map(s => s.trim()).filter(Boolean);
+      const traitTags = traits.length && traits[0] !== '無'
+        ? traits.map(t => `<span class="tag tag-trait">${esc(t)}</span>`).join(' ')
+        : '—';
+
+      // 來源 tag
+      const sourceMap = {
+        '路過':     'tag-walk',
+        '朋友推薦': 'tag-referral',
+        '舊客回購': 'tag-returning',
+        '社群/網路': 'tag-online',
+      };
+      const sourceClass = sourceMap[r.source] || 'tag-walk';
+      const sourceTag = `<span class="tag ${sourceClass}">${esc(r.source)}</span>`;
+
+      // 性別 tag
+      const genderMap = { '女': 'tag-f', '男': 'tag-m' };
+      const genderClass = genderMap[r.gender];
+      const genderTag = genderClass
+        ? `<span class="tag ${genderClass}">${esc(r.gender)}</span>`
+        : esc(r.gender);
+
+      // 擴散可能 tag（簡易判斷）
+      let spreadClass = 'tag-spread-mid';
+      const rp = (r.referral_potential || '').toLowerCase();
+      if (rp.startsWith('高') || rp.includes('高，')) spreadClass = 'tag-spread-high';
+      else if (rp.startsWith('低') || rp.includes('低，')) spreadClass = 'tag-spread-low';
+
+      tr.innerHTML = `
+        <td>${esc(r.date)}</td>
+        <td>${esc(r.staff)}</td>
+        <td>${esc(r.location)}</td>
+        <td class="plan">${esc(r.plan_with_gift)}</td>
+        <td>${esc(r.retail_record)}</td>
+        <td class="name group-start">${esc(r.customer_name)}</td>
+        <td>${genderTag}</td>
+        <td>${esc(r.age)}</td>
+        <td>${esc(r.occupation)}</td>
+        <td>${typeTag}</td>
+        <td>${traitTags}</td>
+        <td class="group-start">${sourceTag}</td>
+        <td class="group-start">${esc(r.closing_key)}</td>
+        <td>${esc(r.main_obstacle)}</td>
+        <td class="group-start"><span class="tag ${spreadClass}">${esc(r.referral_potential)}</span></td>
+        <td class="notes">${esc(r.notes)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('result-count').innerHTML =
+      `共 <strong>${records.length}</strong> 位客人`;
+    document.getElementById('results-section').style.display = 'block';
+    document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function esc(v) {
+    if (!v || v === '無') return v === '無' ? '—' : '—';
+    return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function exportCSV() {
+    if (!currentRecords.length) return;
+    const headers = FIELDS.map(f => f.label);
+    const rows = currentRecords.map(r =>
+      FIELDS.map(f => {
+        const val = r[f.key] ?? '';
+        return `"${String(val).replace(/"/g, '""')}"`;
+      }).join(',')
+    );
+    const csv = '﻿' + [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const today = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `ALLIN_Persona_${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+</script>
+
+</body>
+</html>
