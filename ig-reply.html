@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ALL IN 社群訊息回覆</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black: #1a1a1a;
+      --gray-dark: #4a4a4a;
+      --gray-mid: #9a9a9a;
+      --gray-light: #e8e8e8;
+      --bg: #f7f6f4;
+      --white: #ffffff;
+      --green: #3d6b4f;
+      --red: #9b3a3a;
+      --purple: #5a4a7a;
+      --purple-light: #ede8f4;
+    }
+
+    body {
+      font-family: -apple-system, "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: var(--bg);
+      color: var(--black);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--black);
+      color: var(--white);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 { font-size: 15px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; }
+    header span { font-size: 12px; color: var(--gray-mid); letter-spacing: 0.06em; }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+
+    .card {
+      background: var(--white);
+      border: 1px solid var(--gray-light);
+      border-radius: 4px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--gray-mid); margin-bottom: 16px;
+    }
+
+    .row { display: flex; gap: 16px; flex-wrap: wrap; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px; }
+    .field.full { min-width: 100%; }
+
+    label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-dark); }
+
+    input[type="text"], input[type="password"], textarea, select {
+      border: 1px solid var(--gray-light); border-radius: 3px; padding: 10px 12px;
+      font-size: 13px; font-family: inherit; color: var(--black); background: var(--white);
+      transition: border-color 0.15s; width: 100%;
+    }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--black); }
+    textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
+
+    .hint { font-size: 11px; color: var(--gray-mid); line-height: 1.5; }
+
+    /* ── 類型選擇器 ── */
+    .type-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .type-tab {
+      padding: 8px 16px; border-radius: 3px; font-size: 12px; font-weight: 600;
+      letter-spacing: 0.06em; cursor: pointer; border: 1px solid var(--gray-light);
+      background: var(--white); color: var(--gray-dark); transition: all 0.15s;
+      user-select: none;
+    }
+    .type-tab:hover { border-color: var(--black); color: var(--black); }
+    .type-tab.active { background: var(--black); color: var(--white); border-color: var(--black); }
+
+    /* ── 拖拉上傳區 ── */
+    .drop-zone {
+      border: 1.5px dashed var(--gray-light); border-radius: 4px;
+      padding: 28px; text-align: center; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s; position: relative;
+      min-height: 120px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 10px;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--black); background: #fafaf9;
+    }
+    .drop-zone.has-image { border-style: solid; border-color: var(--green); background: #f4f9f6; }
+
+    .drop-icon { font-size: 28px; line-height: 1; }
+    .drop-label { font-size: 12px; color: var(--gray-mid); }
+    .drop-label strong { color: var(--gray-dark); }
+
+    /* hidden file input, triggered by clicking drop zone */
+    #file-input { display: none; }
+
+    .preview-wrap { position: relative; display: inline-block; }
+    .preview-img { max-height: 220px; max-width: 100%; border-radius: 3px; display: block; }
+    .remove-img {
+      position: absolute; top: -8px; right: -8px; background: var(--black);
+      color: var(--white); border: none; border-radius: 50%; width: 22px; height: 22px;
+      font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── 按鈕 ── */
+    .actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+    button {
+      font-family: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; padding: 11px 24px; border-radius: 3px; border: none;
+      cursor: pointer; transition: opacity 0.15s, background 0.15s;
+    }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary { background: var(--black); color: var(--white); }
+    .btn-primary:hover:not(:disabled) { background: #333; }
+    .btn-secondary { background: transparent; color: var(--black); border: 1px solid var(--gray-light); }
+    .btn-secondary:hover:not(:disabled) { border-color: var(--black); }
+    .btn-copy { background: var(--green); color: var(--white); }
+    .btn-copy:hover:not(:disabled) { opacity: 0.85; }
+
+    .status { font-size: 12px; color: var(--gray-mid); flex: 1; }
+    .status.error { color: var(--red); }
+    .status.success { color: var(--green); }
+
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid var(--gray-light); border-top-color: var(--gray-mid);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── 回覆結果 ── */
+    #result-section { display: none; }
+
+    .result-box {
+      background: var(--bg); border: 1px solid var(--gray-light); border-radius: 3px;
+      padding: 20px 20px 16px; margin-bottom: 16px;
+    }
+
+    .result-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--gray-mid); margin-bottom: 10px;
+    }
+
+    .result-text {
+      font-size: 14px; line-height: 1.8; color: var(--black); white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .result-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+
+    .btn-variant {
+      background: transparent; color: var(--purple); border: 1px solid var(--purple-light);
+      font-size: 11px; padding: 7px 14px;
+    }
+    .btn-variant:hover:not(:disabled) { background: var(--purple-light); }
+
+    .toggle-key {
+      background: transparent; border: 1px solid var(--gray-light); color: var(--gray-dark);
+      padding: 4px 8px; font-size: 10px; letter-spacing: 0; text-transform: none;
+    }
+    .api-key-hint { display: flex; align-items: center; gap: 8px; }
+
+    .divider { border: none; border-top: 1px solid var(--gray-light); margin: 4px 0 12px; }
+
+    /* ── 情境類型說明 ── */
+    .context-note {
+      font-size: 11px; color: var(--gray-mid); padding: 8px 12px;
+      background: #f7f6f4; border-radius: 3px; border-left: 2px solid var(--gray-light);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>ALL IN — 社群訊息回覆</h1>
+  <span>Instagram DM · 限時動態 · 留言</span>
+</header>
+
+<div class="container">
+
+  <!-- 設定 -->
+  <div class="card">
+    <div class="card-title">設定</div>
+    <div class="row">
+      <div class="field">
+        <label>Anthropic API Key</label>
+        <div class="api-key-hint">
+          <input type="password" id="api-key" placeholder="sk-ant-…" autocomplete="off">
+          <button class="toggle-key" onclick="toggleKey()">顯示</button>
+        </div>
+        <span class="hint">儲存於本機瀏覽器，不會外傳。</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 輸入 -->
+  <div class="card">
+    <div class="card-title">訊息情境</div>
+
+    <!-- 類型 -->
+    <div class="field" style="margin-bottom: 20px;">
+      <label>訊息類型</label>
+      <div class="type-tabs">
+        <div class="type-tab active" data-type="dm" onclick="selectType(this)">💬 DM 私訊</div>
+        <div class="type-tab" data-type="story" onclick="selectType(this)">⭕ 限時動態回覆</div>
+        <div class="type-tab" data-type="comment" onclick="selectType(this)">💭 貼文留言</div>
+        <div class="type-tab" data-type="collab" onclick="selectType(this)">🤝 合作詢問</div>
+      </div>
+      <div class="context-note" id="type-note">對方傳來的 DM 私訊，一般詢問或互動。</div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- 對話截圖 -->
+    <div class="field full" style="margin-bottom: 20px;">
+      <label>截圖上傳（可直接從桌面拖入）</label>
+      <div class="drop-zone" id="drop-zone"
+           ondragover="handleDragOver(event)"
+           ondragleave="handleDragLeave(event)"
+           ondrop="handleDrop(event)"
+           onclick="document.getElementById('file-input').click()">
+        <div class="drop-icon" id="drop-icon">🖼</div>
+        <div class="drop-label" id="drop-label">
+          <strong>拖曳截圖到這裡</strong><br>或點一下選取圖片
+        </div>
+        <div id="preview-container"></div>
+      </div>
+      <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(event)">
+      <span class="hint">支援 DM 對話截圖、限時動態截圖、留言截圖</span>
+    </div>
+
+    <!-- 文字補充 -->
+    <div class="field full" style="margin-bottom: 20px;">
+      <label>對話內容或補充說明（選填）</label>
+      <textarea id="context-text" placeholder="可直接貼上對方傳來的文字，或補充截圖沒有顯示的背景資訊…"></textarea>
+    </div>
+
+    <!-- 語氣偏好 -->
+    <div class="row" style="margin-bottom: 4px;">
+      <div class="field">
+        <label>語言偏好</label>
+        <select id="lang-pref">
+          <option value="auto">自動判斷（依對方語言）</option>
+          <option value="zh">中文為主</option>
+          <option value="en">英文為主</option>
+          <option value="mixed">中英混用</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>語氣溫度</label>
+        <select id="tone-pref">
+          <option value="warm">溫暖親切</option>
+          <option value="casual">輕鬆日常</option>
+          <option value="formal">正式有禮</option>
+          <option value="excited">活潑興奮</option>
+        </select>
+      </div>
+    </div>
+
+    <hr class="divider" style="margin-top: 16px;">
+
+    <div class="actions">
+      <button class="btn-primary" id="gen-btn" onclick="generate()">產生回覆</button>
+      <button class="btn-secondary" onclick="clearAll()">清除</button>
+      <span class="status" id="status-msg"></span>
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div id="result-section">
+    <div class="card">
+      <div class="card-title">建議回覆</div>
+
+      <div id="result-list"></div>
+
+      <div class="actions" style="margin-top: 8px;">
+        <button class="btn-variant" onclick="generateMore()">再生成一個版本</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ── API Key ── */
+  const keyInput = document.getElementById('api-key');
+  keyInput.value = localStorage.getItem('allin_api_key') || '';
+  keyInput.addEventListener('change', () => localStorage.setItem('allin_api_key', keyInput.value.trim()));
+  function toggleKey() { keyInput.type = keyInput.type === 'password' ? 'text' : 'password'; }
+
+  /* ── 類型選擇 ── */
+  const typeNotes = {
+    dm:      '對方傳來的 DM 私訊，一般詢問或互動。',
+    story:   '對方對限時動態的回覆或反應，需針對動態內容給予回應。',
+    comment: '對方在貼文下的留言，簡短友善的公開回應。',
+    collab:  '廠商、KOL 或媒體的合作詢問，需衡量是否適合 ALL IN 品牌。',
+  };
+  let currentType = 'dm';
+
+  function selectType(el) {
+    document.querySelectorAll('.type-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    currentType = el.dataset.type;
+    document.getElementById('type-note').textContent = typeNotes[currentType];
+  }
+
+  /* ── 拖拉上傳 ── */
+  let uploadedImage = null; // { dataUrl, mediaType }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    document.getElementById('drop-zone').classList.add('drag-over');
+  }
+
+  function handleDragLeave(e) {
+    document.getElementById('drop-zone').classList.remove('drag-over');
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) loadImage(file);
+  }
+
+  function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) loadImage(file);
+  }
+
+  function loadImage(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      const mediaType = file.type || 'image/jpeg';
+      uploadedImage = { dataUrl, mediaType };
+      renderPreview(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function renderPreview(dataUrl) {
+    const zone = document.getElementById('drop-zone');
+    const container = document.getElementById('preview-container');
+    document.getElementById('drop-icon').style.display = 'none';
+    document.getElementById('drop-label').style.display = 'none';
+    zone.classList.add('has-image');
+    container.innerHTML = `
+      <div class="preview-wrap">
+        <img class="preview-img" src="${dataUrl}" alt="preview">
+        <button class="remove-img" onclick="removeImage(event)" title="移除">✕</button>
+      </div>`;
+  }
+
+  function removeImage(e) {
+    e.stopPropagation();
+    uploadedImage = null;
+    document.getElementById('drop-icon').style.display = '';
+    document.getElementById('drop-label').style.display = '';
+    document.getElementById('preview-container').innerHTML = '';
+    document.getElementById('drop-zone').classList.remove('has-image');
+    document.getElementById('file-input').value = '';
+  }
+
+  /* ── 狀態 ── */
+  function setStatus(msg, type = '') {
+    const el = document.getElementById('status-msg');
+    el.className = 'status' + (type ? ' ' + type : '');
+    el.innerHTML = msg;
+  }
+
+  function clearAll() {
+    removeImage({ stopPropagation: () => {} });
+    document.getElementById('context-text').value = '';
+    document.getElementById('result-section').style.display = 'none';
+    setStatus('');
+  }
+
+  /* ── 建立 system prompt ── */
+  function buildSystemPrompt() {
+    const typeInstructions = {
+      dm: `這是一則 Instagram DM 私訊。請扮演 ALL IN ｜全食理念（@all.intoday）的社群小編，給出自然、有品牌溫度的私訊回覆。`,
+      story: `這是對方對 ALL IN 限時動態的回覆或反應。請根據動態內容，給出簡短、有互動感的回覆，讓對方感受到品牌的溫度。`,
+      comment: `這是對方在 ALL IN 貼文下的留言。請給出簡短、公開友善的留言回覆，鼓勵互動，帶有品牌語氣。`,
+      collab: `這是一則合作詢問訊息。請先評估這個合作是否符合 ALL IN 品牌調性（全食理念、健康、質感），再給出適合的回覆。若不符合，婉拒語氣要有溫度，不要太制式。`,
+    };
+
+    const langInstructions = {
+      auto: '語言：依對方使用的語言自然回應（對方說中文用中文，說英文用英文，混用則混用）。',
+      zh:   '語言：以繁體中文為主回覆。',
+      en:   '語言：以英文回覆。',
+      mixed: '語言：中英混用，自然融入，不刻意。',
+    };
+
+    const toneInstructions = {
+      warm:    '語氣：溫暖、親切、有人情味，像朋友聊天但保持品牌質感。',
+      casual:  '語氣：輕鬆日常，口語自然，不過度正式。',
+      formal:  '語氣：正式有禮，字句清晰，適合初次接觸或商務場合。',
+      excited: '語氣：活潑有能量，適合新品或活動的互動。',
+    };
+
+    const lang = document.getElementById('lang-pref').value;
+    const tone = document.getElementById('tone-pref').value;
+
+    return `你是 ALL IN ｜全食理念（@all.intoday）的 Instagram 社群小編。
+
+${typeInstructions[currentType]}
+
+【品牌基本資訊】
+- 品牌：ALL IN，全食理念，台灣健康飲食品牌
+- 核心理念：「每一口全然保留、每一天全力以赴」
+- 產品：全食飲（全豆漿）、小全頭（全食物饅頭）、厚果醬（腰果醬）、全方麵、全食圈
+- 技術：獨家微米化專利，不濾渣、零添加、100% 保留營養
+- 風格：質感、真實、有溫度，介於 Aesop 的沉穩與朋友聊天之間
+
+【語言與語氣規定】
+${langInstructions[lang]}
+${toneInstructions[tone]}
+
+【Instagram 回覆風格規則】
+- 簡短有力，不冗長（DM 通常 1–4 句；留言更短）
+- 適時使用 emoji，但不過多（1–3 個為宜）；常用：🌿 💛 ✨ 🙏🏽 💪🏽 🥰
+- 英文混用時自然融入，不刻意（如 "have a good one!" / "so glad you loved it!"）
+- 回應限時動態：直接呼應動態主題，帶入品牌理念
+- 稱呼對方：能看出名字用名字，否則自然帶過
+- 結尾：溫暖收尾，不要過於制式
+- 避免：「您好」「敬請」「親愛的顧客」等客服腔；避免過多感嘆號
+
+【禁忌】
+- 不說謊（產品效果不誇大）
+- 不主動推銷（有詢問才介紹，不硬塞）
+- 合作回覆：不答應不符合品牌的合作
+
+請直接輸出回覆文字（不需要說明、不需要標題），只給一個最好的版本。`;
+  }
+
+  /* ── 產生回覆 ── */
+  let allResults = [];
+
+  async function generate() {
+    const apiKey = keyInput.value.trim();
+    if (!apiKey) { setStatus('請先填入 Anthropic API Key', 'error'); return; }
+
+    const contextText = document.getElementById('context-text').value.trim();
+    if (!contextText && !uploadedImage) {
+      setStatus('請貼上對話內容或上傳截圖', 'error');
+      return;
+    }
+
+    allResults = [];
+    document.getElementById('result-section').style.display = 'none';
+
+    const btn = document.getElementById('gen-btn');
+    btn.disabled = true;
+    setStatus('<span class="spinner"></span>產生中…');
+
+    try {
+      const result = await callClaude(apiKey, buildSystemPrompt(), contextText, uploadedImage);
+      allResults.push(result);
+      renderResults();
+      setStatus('', 'success');
+    } catch (e) {
+      setStatus('錯誤：' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function generateMore() {
+    const apiKey = keyInput.value.trim();
+    if (!apiKey) return;
+
+    const contextText = document.getElementById('context-text').value.trim();
+
+    const morePrompt = buildSystemPrompt() + '\n\n【注意】請給出一個與之前版本風格不同的替代回覆，換個角度或語氣。';
+
+    document.querySelector('.btn-variant').disabled = true;
+    try {
+      const result = await callClaude(apiKey, morePrompt, contextText, uploadedImage);
+      allResults.push(result);
+      renderResults();
+    } catch (e) {
+      setStatus('錯誤：' + e.message, 'error');
+    } finally {
+      document.querySelector('.btn-variant').disabled = false;
+    }
+  }
+
+  async function callClaude(apiKey, systemPrompt, contextText, image) {
+    const userContent = [];
+
+    if (image) {
+      const base64 = image.dataUrl.split(',')[1];
+      userContent.push({
+        type: 'image',
+        source: { type: 'base64', media_type: image.mediaType, data: base64 }
+      });
+    }
+
+    const typeLabel = { dm: 'DM 私訊', story: '限時動態回覆', comment: '貼文留言', collab: '合作詢問' }[currentType];
+    let userText = `【訊息類型】${typeLabel}\n\n`;
+    if (image && !contextText) userText += '請根據截圖中的訊息內容，產生適合的回覆。';
+    else if (contextText) userText += `【對話內容 / 補充說明】\n${contextText}`;
+
+    userContent.push({ type: 'text', text: userText });
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userContent }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    return data.content?.[0]?.text || '';
+  }
+
+  /* ── 渲染結果 ── */
+  function renderResults() {
+    const section = document.getElementById('result-section');
+    const list = document.getElementById('result-list');
+    list.innerHTML = '';
+
+    allResults.forEach((text, i) => {
+      const box = document.createElement('div');
+      box.className = 'result-box';
+      box.innerHTML = `
+        <div class="result-label">版本 ${i + 1}</div>
+        <div class="result-text" id="result-text-${i}">${esc(text)}</div>
+        <div class="result-actions">
+          <button class="btn-copy" onclick="copyText(${i})">複製</button>
+        </div>`;
+      list.appendChild(box);
+    });
+
+    section.style.display = 'block';
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function copyText(i) {
+    const text = allResults[i] || '';
+    navigator.clipboard.writeText(text).then(() => {
+      const btns = document.querySelectorAll('.btn-copy');
+      if (btns[i]) {
+        const orig = btns[i].textContent;
+        btns[i].textContent = '已複製 ✓';
+        setTimeout(() => { btns[i].textContent = orig; }, 1800);
+      }
+    });
+  }
+
+  function esc(v) {
+    return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+
+</body>
+</html>
