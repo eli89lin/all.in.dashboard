@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALL IN 週報 Dashboard — 6/29–7/5</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", sans-serif;
+  background: #f0f0ee; color: #1a1a1a; min-height: 100vh;
+}
+.page { max-width: 1200px; margin: 0 auto; padding: 28px 20px 48px; }
+
+/* Header */
+.header {
+  background: #1c3a2a; color: #fff; border-radius: 16px;
+  padding: 26px 30px; margin-bottom: 22px;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 20px;
+}
+.header__brand { font-size: 10px; opacity: .5; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 5px; }
+.header__week  { font-size: 28px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+.header__sub   { font-size: 12px; opacity: .45; margin-top: 5px; }
+.header__kpis  { display: flex; gap: 28px; flex-wrap: wrap; }
+.kpi { text-align: right; }
+.kpi__label { font-size: 9px; opacity: .5; letter-spacing: .07em; text-transform: uppercase; }
+.kpi__value { font-size: 22px; font-weight: 800; line-height: 1.1; }
+.kpi__delta { font-size: 11px; margin-top: 2px; }
+.up   { color: #6ee7a8; }
+.down { color: #f87171; }
+
+/* Week nav */
+.week-nav { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.week-nav a {
+  font-size: 12px; padding: 7px 16px; border-radius: 8px; text-decoration: none;
+  background: #fff; border: 1px solid #e0ded8; color: #555;
+}
+.week-nav a.current { background: #1c3a2a; color: #fff; border-color: #1c3a2a; font-weight: 700; }
+.week-nav a:hover:not(.current) { border-color: #1a1a1a; }
+
+/* Section */
+.sec { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #999; margin: 24px 0 10px; }
+
+/* Store Grid */
+.store-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; }
+@media(max-width:680px){ .store-grid { grid-template-columns: 1fr; } }
+
+.sc { background: #fff; border-radius: 14px; padding: 20px 22px 18px; border-top: 4px solid #1c3a2a; }
+.sc--red { border-top-color: #ef4444; }
+.sc--ylw { border-top-color: #f59e0b; }
+.sc--grn { border-top-color: #16a34a; }
+
+.sc__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.sc__name { font-size: 16px; font-weight: 800; }
+.sc__badge { font-size: 10px; font-weight: 700; border-radius: 20px; padding: 3px 10px; }
+.sc__badge--bad  { background: #fee2e2; color: #991b1b; }
+.sc__badge--warn { background: #fef3c7; color: #92400e; }
+.sc__badge--ok   { background: #dcfce7; color: #166534; }
+
+.sc__rev { margin-bottom: 12px; }
+.sc__rev-total { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.sc__rev-val   { font-size: 26px; font-weight: 900; letter-spacing: -.03em; }
+.sc__rev-delta { font-size: 12px; font-weight: 700; }
+.tag-pos { color: #16a34a; }
+.tag-neg { color: #dc2626; }
+.tag-neu { color: #999; }
+
+.rev-break { display: flex; gap: 0; border-radius: 6px; overflow: hidden; height: 6px; margin-bottom: 7px; }
+.rev-break__retail { background: #1c3a2a; }
+.rev-break__plan   { background: #f59e0b; }
+
+.rev-break-labels { display: flex; gap: 14px; font-size: 11px; color: #666; margin-bottom: 12px; flex-wrap: wrap; }
+.rev-break-labels span { display: flex; align-items: center; gap: 5px; }
+.dot-grn { width: 8px; height: 8px; border-radius: 2px; background: #1c3a2a; flex-shrink: 0; }
+.dot-ylw { width: 8px; height: 8px; border-radius: 2px; background: #f59e0b; flex-shrink: 0; }
+
+.sc__metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px 6px; padding-top: 10px; border-top: 1px solid #f0f0ee; }
+.m__lbl   { font-size: 9px; color: #aaa; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 2px; }
+.m__val   { font-size: 16px; font-weight: 800; line-height: 1.1; }
+.m__delta { font-size: 10px; font-weight: 600; margin-top: 1px; }
+
+/* Comparison table */
+.cmp { background: #fff; border-radius: 14px; overflow: hidden; }
+.cmp table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.cmp thead th {
+  background: #f8f8f7; font-size: 9px; font-weight: 700; letter-spacing: .07em;
+  color: #999; text-align: right; padding: 10px 14px; text-transform: uppercase; white-space: nowrap;
+}
+.cmp thead th:first-child { text-align: left; }
+.cmp tbody td { padding: 10px 14px; text-align: right; border-bottom: 1px solid #f4f4f2; white-space: nowrap; }
+.cmp tbody td:first-child { font-weight: 700; text-align: left; }
+.cmp tbody tr:last-child td { border-bottom: none; }
+.cmp tfoot td {
+  padding: 10px 14px; text-align: right; font-weight: 800;
+  background: #f8f8f7; border-top: 2px solid #eaeae8;
+}
+.cmp tfoot td:first-child { text-align: left; }
+
+/* Trend table (3-week) */
+.trend { background: #fff; border-radius: 14px; overflow: hidden; }
+.trend table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.trend thead th {
+  background: #1c3a2a; color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .05em;
+  text-align: right; padding: 11px 14px; white-space: nowrap;
+}
+.trend thead th:first-child { text-align: left; }
+.trend tbody td { padding: 11px 14px; text-align: right; border-bottom: 1px solid #f4f4f2; white-space: nowrap; }
+.trend tbody td:first-child { font-weight: 700; text-align: left; }
+.trend tbody tr:last-child td { border-bottom: none; font-weight: 800; background: #f8f8f7; }
+.trend .now { font-weight: 800; color: #1c3a2a; }
+
+/* Progress */
+.prog { background: #fff; border-radius: 14px; padding: 18px 22px; }
+.prog-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.prog-title { font-size: 13px; font-weight: 700; }
+.prog-pct   { font-size: 20px; font-weight: 900; color: #f59e0b; }
+.prog-wrap  { background: #f0f0ee; border-radius: 99px; height: 8px; overflow: hidden; }
+.prog-fill  { background: #f59e0b; height: 100%; border-radius: 99px; }
+.prog-sub   { font-size: 12px; color: #888; margin-top: 7px; line-height: 1.6; }
+
+/* Staff Tabs */
+.tab-btns  { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab-btn   {
+  padding: 8px 18px; border: none; border-radius: 8px 8px 0 0;
+  background: #e4e4e2; font-size: 13px; font-weight: 700;
+  cursor: pointer; color: #777; font-family: inherit;
+}
+.tab-btn.active { background: #fff; color: #1c3a2a; }
+
+.tab-panel { display: none; background: #fff; border-radius: 0 14px 14px 14px; overflow-x: auto; }
+.tab-panel.active { display: block; }
+
+.st { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 820px; }
+.st thead th {
+  background: #f8f8f7; font-size: 9px; font-weight: 700; letter-spacing: .07em;
+  color: #999; text-align: right; padding: 10px 14px; text-transform: uppercase; white-space: nowrap;
+}
+.st thead th:first-child { text-align: left; }
+.st tbody td { padding: 11px 14px; text-align: right; border-bottom: 1px solid #f4f4f2; white-space: nowrap; }
+.st tbody td:first-child { text-align: left; font-weight: 700; }
+.st tbody tr:last-child td { border-bottom: none; }
+.st tfoot td {
+  padding: 11px 14px; text-align: right; font-weight: 800;
+  background: #f8f8f7; border-top: 2px solid #eaeae8;
+}
+.st tfoot td:first-child { text-align: left; }
+.rate-hi { color: #16a34a; font-weight: 800; }
+.rate-lo { color: #dc2626; font-weight: 800; }
+.plan-hi { color: #d97706; font-weight: 800; }
+
+/* Alerts */
+.alert-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+@media(max-width:680px){ .alert-grid { grid-template-columns: 1fr; } }
+.ac { background: #fff; border-radius: 12px; padding: 15px 18px; border-left: 3px solid #f59e0b; }
+.ac--ok  { border-left-color: #22c55e; }
+.ac--bad { border-left-color: #ef4444; }
+.ac__title { font-size: 12px; font-weight: 800; margin-bottom: 7px; display: flex; align-items: center; gap: 6px; }
+.ac__dot   { width: 6px; height: 6px; border-radius: 50%; background: #f59e0b; flex-shrink: 0; }
+.ac--ok  .ac__dot { background: #22c55e; }
+.ac--bad .ac__dot { background: #ef4444; }
+.ac__body { font-size: 11px; color: #555; line-height: 1.85; }
+
+/* Observations */
+.obs { background: #fff; border-radius: 14px; padding: 18px 22px; }
+.obs-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 18px; }
+@media(max-width:680px){ .obs-grid { grid-template-columns: 1fr; } }
+.obs__head { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+.obs__up  { color: #166534; }
+.obs__dn  { color: #991b1b; }
+.obs__list { font-size: 12px; color: #333; line-height: 2; padding-left: 16px; }
+
+.back { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #888; text-decoration: none; margin-bottom: 16px; }
+.back:hover { color: #1c3a2a; }
+
+.footer { text-align: center; font-size: 11px; color: #c0c0bc; margin-top: 36px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<a class="back" href="../">← 返回工具首頁</a>
+
+<!-- Week Nav -->
+<div class="week-nav">
+  <a href="2026-06-14.html">6/8–6/14</a>
+  <a href="2026-06-21.html">6/15–6/21</a>
+  <a href="2026-06-28.html">6/22–6/28</a>
+  <a href="2026-07-05.html" class="current">6/29–7/5</a>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div>
+    <div class="header__brand">ALL IN &nbsp;·&nbsp; 週報 Dashboard</div>
+    <div class="header__week">6 / 29 – 7 / 5</div>
+    <div class="header__sub">對比前週 6/22–6/28 &nbsp;｜&nbsp; 四個直營櫃位</div>
+  </div>
+  <div class="header__kpis">
+    <div class="kpi">
+      <div class="kpi__label">四櫃總業績</div>
+      <div class="kpi__value">$437,676</div>
+      <div class="kpi__delta down">▼ −$37,878 (−8.0%)</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__label">零售業績</div>
+      <div class="kpi__value">$241,876</div>
+      <div class="kpi__delta up">▲ +$25,722 (+11.9%)</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__label">方案業績</div>
+      <div class="kpi__value">$195,800</div>
+      <div class="kpi__delta down">▼ −$63,600 (−24.5%)</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__label">方案筆數</div>
+      <div class="kpi__value">28</div>
+      <div class="kpi__delta down">▼ −9 筆</div>
+    </div>
+  </div>
+</div>
+
+<!-- Store Cards -->
+<div class="sec">櫃位營運概覽 — 本週 vs 前週</div>
+<div class="store-grid">
+
+  <!-- 信義A4 -->
+  <div class="sc sc--red">
+    <div class="sc__head">
+      <div class="sc__name">新光三越 A4</div>
+      <span class="sc__badge sc__badge--ok">✓ POS 0次</span>
+    </div>
+    <div class="sc__rev">
+      <div class="sc__rev-total">
+        <span class="sc__rev-val">$133,281</span>
+        <span class="sc__rev-delta tag-neg">▼ −$4,661 (−3.4%)</span>
+      </div>
+      <div class="rev-break">
+        <div class="rev-break__retail" style="width:51.0%"></div>
+        <div class="rev-break__plan"   style="width:49.0%"></div>
+      </div>
+      <div class="rev-break-labels">
+        <span><i class="dot-grn"></i>零售 $67,981</span>
+        <span><i class="dot-ylw"></i>方案 $65,300（10筆）&nbsp;佔 49.0%</span>
+      </div>
+    </div>
+    <div class="sc__metrics">
+      <div><div class="m__lbl">訂單數</div><div class="m__val">102</div><div class="m__delta tag-pos">▲ 16 單</div></div>
+      <div><div class="m__lbl">多品項率</div><div class="m__val">25.5%</div><div class="m__delta tag-neg">▼ 12.9pp</div></div>
+      <div><div class="m__lbl">客單價</div><div class="m__val">$1,307</div><div class="m__delta tag-neg">▼ $297</div></div>
+      <div><div class="m__lbl">LINE 綁定</div><div class="m__val">47</div><div class="m__delta tag-pos">▲ 20</div></div>
+      <div><div class="m__lbl">POS 異常</div><div class="m__val">0</div><div class="m__delta tag-pos">▼ 2</div></div>
+      <div><div class="m__lbl">總業績 / hr</div><div class="m__val">$1,410</div><div class="m__delta tag-neg">▼ $12</div></div>
+    </div>
+  </div>
+
+  <!-- 大葉 -->
+  <div class="sc sc--red">
+    <div class="sc__head">
+      <div class="sc__name">大葉高島屋</div>
+      <span class="sc__badge sc__badge--warn">⚠ POS 1次</span>
+    </div>
+    <div class="sc__rev">
+      <div class="sc__rev-total">
+        <span class="sc__rev-val">$75,195</span>
+        <span class="sc__rev-delta tag-neg">▼ −$56,207 (−42.8%)</span>
+      </div>
+      <div class="rev-break">
+        <div class="rev-break__retail" style="width:73.7%"></div>
+        <div class="rev-break__plan"   style="width:26.3%"></div>
+      </div>
+      <div class="rev-break-labels">
+        <span><i class="dot-grn"></i>零售 $55,395</span>
+        <span><i class="dot-ylw"></i>方案 $19,800（3筆）&nbsp;佔 26.3%</span>
+      </div>
+    </div>
+    <div class="sc__metrics">
+      <div><div class="m__lbl">訂單數</div><div class="m__val">85</div><div class="m__delta tag-neu">— 0 單</div></div>
+      <div><div class="m__lbl">多品項率</div><div class="m__val">29.4%</div><div class="m__delta tag-pos">▲ 3.7pp</div></div>
+      <div><div class="m__lbl">客單價</div><div class="m__val">$885</div><div class="m__delta tag-neg">▼ $661</div></div>
+      <div><div class="m__lbl">LINE 綁定</div><div class="m__val">32</div><div class="m__delta tag-neu">— 0</div></div>
+      <div><div class="m__lbl">POS 異常</div><div class="m__val">1</div><div class="m__delta tag-pos">▼ 1</div></div>
+      <div><div class="m__lbl">總業績 / hr</div><div class="m__val">$809</div><div class="m__delta tag-neg">▼ $305</div></div>
+    </div>
+  </div>
+
+  <!-- 台中 -->
+  <div class="sc sc--ylw">
+    <div class="sc__head">
+      <div class="sc__name">新光中港（台中）</div>
+      <span class="sc__badge sc__badge--ok">✓ POS 0次</span>
+    </div>
+    <div class="sc__rev">
+      <div class="sc__rev-total">
+        <span class="sc__rev-val">$116,030</span>
+        <span class="sc__rev-delta tag-pos">▲ +$9,770 (+9.2%)</span>
+      </div>
+      <div class="rev-break">
+        <div class="rev-break__retail" style="width:43.5%"></div>
+        <div class="rev-break__plan"   style="width:56.5%"></div>
+      </div>
+      <div class="rev-break-labels">
+        <span><i class="dot-grn"></i>零售 $50,430</span>
+        <span><i class="dot-ylw"></i>方案 $65,600（10筆）&nbsp;佔 56.5%</span>
+      </div>
+    </div>
+    <div class="sc__metrics">
+      <div><div class="m__lbl">訂單數</div><div class="m__val">91</div><div class="m__delta tag-pos">▲ 8 單</div></div>
+      <div><div class="m__lbl">多品項率</div><div class="m__val">19.8%</div><div class="m__delta tag-neg">▼ 14.0pp</div></div>
+      <div><div class="m__lbl">客單價</div><div class="m__val">$1,275</div><div class="m__delta tag-neg">▼ $5</div></div>
+      <div><div class="m__lbl">LINE 綁定</div><div class="m__val">36</div><div class="m__delta tag-pos">▲ 2</div></div>
+      <div><div class="m__lbl">POS 異常</div><div class="m__val">0</div><div class="m__delta tag-pos">▼ 1</div></div>
+      <div><div class="m__lbl">總業績 / hr</div><div class="m__val">$1,196</div><div class="m__delta tag-pos">▲ $133</div></div>
+    </div>
+  </div>
+
+  <!-- 竹北 -->
+  <div class="sc sc--ylw">
+    <div class="sc__head">
+      <div class="sc__name">竹北遠百</div>
+      <span class="sc__badge sc__badge--ok">✓ POS 0次</span>
+    </div>
+    <div class="sc__rev">
+      <div class="sc__rev-total">
+        <span class="sc__rev-val">$113,170</span>
+        <span class="sc__rev-delta tag-pos">▲ +$13,220 (+13.2%)</span>
+      </div>
+      <div class="rev-break">
+        <div class="rev-break__retail" style="width:60.2%"></div>
+        <div class="rev-break__plan"   style="width:39.8%"></div>
+      </div>
+      <div class="rev-break-labels">
+        <span><i class="dot-grn"></i>零售 $68,070</span>
+        <span><i class="dot-ylw"></i>方案 $45,100（5筆）&nbsp;佔 39.8%</span>
+      </div>
+    </div>
+    <div class="sc__metrics">
+      <div><div class="m__lbl">訂單數</div><div class="m__val">98</div><div class="m__delta tag-pos">▲ 7 單</div></div>
+      <div><div class="m__lbl">多品項率</div><div class="m__val">36.7%</div><div class="m__delta tag-neg">▼ 11.6pp</div></div>
+      <div><div class="m__lbl">客單價</div><div class="m__val">$1,155</div><div class="m__delta tag-pos">▲ $56</div></div>
+      <div><div class="m__lbl">LINE 綁定</div><div class="m__val">42</div><div class="m__delta tag-neg">▼ 21</div></div>
+      <div><div class="m__lbl">POS 異常</div><div class="m__val">0</div><div class="m__delta tag-pos">▼ 2</div></div>
+      <div><div class="m__lbl">總業績 / hr</div><div class="m__val">$1,433</div><div class="m__delta tag-pos">▲ $191</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Comparison Table -->
+<div class="sec">四櫃並排比較（本週）</div>
+<div class="cmp" style="overflow-x:auto">
+  <table>
+    <thead>
+      <tr>
+        <th>櫃位</th>
+        <th>總業績</th><th>前週</th><th>成長率</th>
+        <th>零售</th><th>方案金額</th><th>方案筆數</th>
+        <th>訂單</th><th>多品項率</th><th>LINE</th><th>POS</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>信義 A4</td>
+        <td>$133,281</td><td style="color:#999">$137,942</td><td class="tag-neg">−3.4%</td>
+        <td>$67,981</td><td>$65,300</td><td>10</td>
+        <td>102</td><td>25.5%</td><td>47</td><td>0</td>
+      </tr>
+      <tr>
+        <td>大葉</td>
+        <td>$75,195</td><td style="color:#999">$131,402</td><td class="tag-neg">−42.8%</td>
+        <td>$55,395</td><td>$19,800</td><td>3</td>
+        <td>85</td><td>29.4%</td><td>32</td><td>1</td>
+      </tr>
+      <tr>
+        <td>台中</td>
+        <td>$116,030</td><td style="color:#999">$106,260</td><td class="tag-pos">+9.2%</td>
+        <td>$50,430</td><td>$65,600</td><td>10</td>
+        <td>91</td><td>19.8%</td><td>36</td><td>0</td>
+      </tr>
+      <tr>
+        <td>竹北</td>
+        <td>$113,170</td><td style="color:#999">$99,950</td><td class="tag-pos">+13.2%</td>
+        <td>$68,070</td><td>$45,100</td><td>5</td>
+        <td>98</td><td>36.7%</td><td>42</td><td>0</td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td>合計</td>
+        <td>$437,676</td><td style="color:#999">$475,554</td><td class="tag-neg">−8.0%</td>
+        <td>$241,876</td><td>$195,800</td><td>28</td>
+        <td>376</td><td>27.9%</td><td>157</td><td>1</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<!-- 3-Week Trend -->
+<div class="sec">三週走勢對照（6/15 起）</div>
+<div class="trend" style="overflow-x:auto">
+  <table>
+    <thead>
+      <tr>
+        <th>櫃位</th>
+        <th>6/15–6/21</th><th>6/22–6/28</th><th>6/29–7/5</th><th>近兩週走勢</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>大葉</td>
+        <td>$106,121</td><td>$131,402</td><td class="now">$75,195</td><td class="tag-neg">▼ 高點重挫</td>
+      </tr>
+      <tr>
+        <td>信義 A4</td>
+        <td>$144,030</td><td>$137,942</td><td class="now">$133,281</td><td class="tag-neg">▼ 連三週回落</td>
+      </tr>
+      <tr>
+        <td>竹北</td>
+        <td>$92,317</td><td>$99,950</td><td class="now">$113,170</td><td class="tag-pos">▲ 連三週爬升</td>
+      </tr>
+      <tr>
+        <td>台中</td>
+        <td>$182,103</td><td>$106,260</td><td class="now">$116,030</td><td class="tag-pos">▲ 低點回升</td>
+      </tr>
+      <tr>
+        <td>四櫃合計</td>
+        <td>$524,571</td><td>$475,554</td><td class="now">$437,676</td><td class="tag-neg">▼ 連續下滑</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Progress -->
+<div class="sec">七月小全頭月目標進度</div>
+<div class="prog">
+  <div class="prog-head">
+    <div class="prog-title">七月小全頭月目標 &nbsp;·&nbsp; 待資料提供</div>
+    <div class="prog-pct">—</div>
+  </div>
+  <div class="prog-wrap"><div class="prog-fill" style="width:0%"></div></div>
+  <div class="prog-sub">本次來源（七月櫃位營運健康報表、七月週人力報表）未含小全頭月目標與累計包數，七月進度待資料補齊後更新。</div>
+</div>
+
+<!-- Staff -->
+<div class="sec">銷售夥伴本週表現（6/29–7/5）</div>
+<div>
+  <div class="tab-btns">
+    <button class="tab-btn active" onclick="switchTab(this,'tp-a4')">新光 A4</button>
+    <button class="tab-btn" onclick="switchTab(this,'tp-dayeh')">大葉</button>
+    <button class="tab-btn" onclick="switchTab(this,'tp-zhonggang')">台中</button>
+    <button class="tab-btn" onclick="switchTab(this,'tp-zhubei')">竹北</button>
+  </div>
+
+  <!-- 新光A4 -->
+  <div class="tab-panel active" id="tp-a4">
+    <table class="st">
+      <thead>
+        <tr>
+          <th>姓名</th><th>排班時數</th><th>LINE 綁定</th><th>訂單數</th><th>多品項率</th>
+          <th>方案數</th><th>零售業績</th><th>總業績</th>
+          <th>結單/hr</th><th>總業績/hr</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Stella</td><td>25.5</td><td>18</td><td>31</td><td>25.8%</td><td class="plan-hi">3</td><td>$24,250</td><td class="plan-hi"><b>$43,750</b></td><td><b>1.22</b></td><td class="plan-hi"><b>$1,716</b></td></tr>
+        <tr><td>Tina</td><td>27</td><td>16</td><td>42</td><td>23.8%</td><td class="plan-hi">2</td><td><b>$25,861</b></td><td class="plan-hi">$38,861</td><td class="rate-hi"><b>1.56</b></td><td>$1,439</td></tr>
+        <tr><td>Vivian</td><td>22</td><td>10</td><td>17</td><td>23.5%</td><td class="plan-hi">3</td><td>$10,670</td><td>$30,470</td><td>0.77</td><td>$1,385</td></tr>
+        <tr><td>Liu</td><td>7.5</td><td>3</td><td>7</td><td>28.6%</td><td class="plan-hi">2</td><td>$4,340</td><td>$17,340</td><td>0.93</td><td class="plan-hi"><b>$2,312</b></td></tr>
+        <tr><td>Lydia</td><td>6</td><td>0</td><td>3</td><td>33.3%</td><td>—</td><td>$1,590</td><td>$1,590</td><td>0.50</td><td>$265</td></tr>
+        <tr><td>Enffie</td><td>6.5</td><td>0</td><td>2</td><td class="rate-hi">50.0%</td><td>—</td><td>$1,270</td><td>$1,270</td><td>0.31</td><td>$195</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td>櫃位合計</td><td>94.5 hr</td><td>47</td><td>102</td><td>25.5%</td><td>10</td><td>$67,981</td><td>$133,281</td><td>1.08</td><td>$1,410</td></tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- 大葉 -->
+  <div class="tab-panel" id="tp-dayeh">
+    <table class="st">
+      <thead>
+        <tr>
+          <th>姓名</th><th>排班時數</th><th>LINE 綁定</th><th>訂單數</th><th>多品項率</th>
+          <th>方案數</th><th>零售業績</th><th>總業績</th>
+          <th>結單/hr</th><th>總業績/hr</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Elaine</td><td>30</td><td>21</td><td>33</td><td class="rate-hi">36.4%</td><td class="plan-hi">2</td><td><b>$20,450</b></td><td class="plan-hi"><b>$33,750</b></td><td><b>1.10</b></td><td class="plan-hi"><b>$1,125</b></td></tr>
+        <tr><td>Louis</td><td>14.5</td><td>8</td><td>15</td><td>33.3%</td><td>—</td><td>$14,970</td><td>$14,970</td><td>1.03</td><td>$1,032</td></tr>
+        <tr><td>Liu</td><td>14.5</td><td>0</td><td>8</td><td>—</td><td class="plan-hi">1</td><td>$3,980</td><td>$10,480</td><td>0.55</td><td>$723</td></tr>
+        <tr><td>Chloe</td><td>20</td><td>0</td><td>19</td><td class="rate-lo">21.1%</td><td>—</td><td>$9,975</td><td>$9,975</td><td>0.95</td><td>$499</td></tr>
+        <tr><td>Sydney</td><td>14</td><td>3</td><td>10</td><td class="rate-hi">40.0%</td><td>—</td><td>$6,020</td><td>$6,020</td><td>0.71</td><td>$430</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td>櫃位合計</td><td>93 hr</td><td>32</td><td>85</td><td>29.4%</td><td>3</td><td>$55,395</td><td>$75,195</td><td>0.91</td><td>$809</td></tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- 台中 -->
+  <div class="tab-panel" id="tp-zhonggang">
+    <table class="st">
+      <thead>
+        <tr>
+          <th>姓名</th><th>排班時數</th><th>LINE 綁定</th><th>訂單數</th><th>多品項率</th>
+          <th>方案數</th><th>零售業績</th><th>總業績</th>
+          <th>結單/hr</th><th>總業績/hr</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Gigi</td><td>40</td><td>6</td><td>35</td><td class="rate-lo">11.4%</td><td class="plan-hi">3</td><td><b>$19,555</b></td><td class="plan-hi"><b>$39,355</b></td><td>0.88</td><td>$984</td></tr>
+        <tr><td>Blaire</td><td>15</td><td>9</td><td>20</td><td class="rate-lo">10.0%</td><td class="plan-hi">4</td><td>$11,945</td><td class="plan-hi">$38,245</td><td><b>1.33</b></td><td class="plan-hi"><b>$2,550</b></td></tr>
+        <tr><td>Trinity</td><td>32</td><td>14</td><td>24</td><td>29.2%</td><td class="plan-hi">3</td><td>$11,910</td><td>$31,410</td><td>0.75</td><td>$982</td></tr>
+        <tr><td>Wen</td><td>10</td><td>7</td><td>12</td><td class="rate-hi">41.7%</td><td>—</td><td>$7,020</td><td>$7,020</td><td><b>1.20</b></td><td>$702</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td>櫃位合計</td><td>97 hr</td><td>36</td><td>91</td><td>19.8%</td><td>10</td><td>$50,430</td><td>$116,030</td><td>0.94</td><td>$1,196</td></tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- 竹北 -->
+  <div class="tab-panel" id="tp-zhubei">
+    <table class="st">
+      <thead>
+        <tr>
+          <th>姓名</th><th>排班時數</th><th>LINE 綁定</th><th>訂單數</th><th>多品項率</th>
+          <th>方案數</th><th>零售業績</th><th>總業績</th>
+          <th>結單/hr</th><th>總業績/hr</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Kelly</td><td>26.5</td><td>17</td><td>43</td><td>30.2%</td><td class="plan-hi">2</td><td><b>$27,790</b></td><td class="plan-hi"><b>$52,790</b></td><td class="rate-hi"><b>1.62</b></td><td class="plan-hi"><b>$1,992</b></td></tr>
+        <tr><td>Coco</td><td>33.5</td><td>17</td><td>38</td><td class="rate-hi">47.4%</td><td class="plan-hi">2</td><td>$26,540</td><td>$39,840</td><td>1.13</td><td>$1,189</td></tr>
+        <tr><td>Yvonne</td><td>19</td><td>8</td><td>17</td><td>29.4%</td><td class="plan-hi">1</td><td>$13,740</td><td>$20,540</td><td>0.89</td><td>$1,081</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td>櫃位合計</td><td>79 hr</td><td>42</td><td>98</td><td>36.7%</td><td>5</td><td>$68,070</td><td>$113,170</td><td>1.24</td><td>$1,433</td></tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- Alerts -->
+<div class="sec">本週注意事項 / POS 異常紀錄（合計 1 次，前週 7 次）</div>
+<div class="alert-grid">
+  <div class="ac ac--bad">
+    <div class="ac__title"><span class="ac__dot"></span>大葉 — 1 次 POS 異常</div>
+    <div class="ac__body">Liu：方案品領取誤點成自選禮</div>
+  </div>
+  <div class="ac ac--ok">
+    <div class="ac__title"><span class="ac__dot"></span>信義 A4 · 台中 · 竹北 — 0 次 POS 異常</div>
+    <div class="ac__body">三櫃本週 POS 操作皆正確，較前週合計 5 次明顯改善。</div>
+  </div>
+</div>
+
+<!-- Observations -->
+<div class="sec">本週關鍵觀察</div>
+<div class="obs">
+  <div class="obs-grid">
+    <div>
+      <div class="obs__head obs__up">▲ 亮點</div>
+      <ul class="obs__list">
+        <li>竹北 $113,170（+13.2%）連三週爬升，客單價 $1,155（+$56）微升，本週售出兩筆中方案帶動</li>
+        <li>台中 $116,030（+9.2%）零售客單走高帶動營業額回升，為本週四櫃業績最高</li>
+        <li>新光 A4 訂單 102（+16、+18.6%）、LINE 綁定 47（+20、+74.1%）雙雙大幅成長，來客與會員動能最強</li>
+        <li>零售業績合計 $241,876（+11.9%）逆勢成長，四櫃零售基本盤穩固</li>
+        <li>POS 異常本週僅 1 次（前週 7 次），操作品質大幅改善</li>
+        <li>竹北 Kelly 總業績 $52,790、結單/hr 1.62 全場最高，方案 $25,000 領銜</li>
+        <li>新光 Stella $43,750、營收/hr $1,716 單位產出突出；Tina 訂單 42 全場最多</li>
+      </ul>
+    </div>
+    <div>
+      <div class="obs__head obs__dn">⚠ 需關注</div>
+      <ul class="obs__list">
+        <li>四櫃合計 $437,676（−8.0%）連續第二週下滑，主因大葉單週重挫</li>
+        <li>大葉 $75,195（−42.8%）方案 3 筆（−8）驟減，客單價 $885（−$661）腰斬，方案動能須追</li>
+        <li>多品項率三櫃走弱：新光 25.5%（−12.9pp）、竹北 36.7%（−11.6pp）、台中 19.8%（−14.0pp），搭售待加強</li>
+        <li>台中多品項率 19.8% 四櫃最低，Gigi 11.4%、Blaire 10.0% 僅一成，搭售意識待提點</li>
+        <li>竹北 LINE 綁定 42（−21、−33.3%）明顯回落，會員新增動能轉弱</li>
+        <li>方案業績合計 $195,800（−24.5%）、筆數 28（−9），方案整體放緩</li>
+        <li>大葉 Liu 方案品領取誤點成自選禮（POS 1 次），須複核結帳流程</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="footer">ALL IN 內部用 &nbsp;·&nbsp; 週報 Dashboard &nbsp;·&nbsp; 資料期間 6/29–7/5, 2026 &nbsp;·&nbsp; 含個人績效與方案拆分</div>
+
+</div>
+<script>
+function switchTab(btn, id) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body>
+</html>
