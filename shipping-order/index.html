@@ -110,7 +110,7 @@
   /* product rows */
   .product-row {
     display: grid;
-    grid-template-columns: 22px 1fr 52px 52px auto;
+    grid-template-columns: 22px 1fr 46px 46px 56px auto;
     gap: 6px;
     align-items: center;
     margin-bottom: 8px;
@@ -165,7 +165,7 @@
 
   .col-header {
     display: grid;
-    grid-template-columns: 22px 1fr 52px 52px 24px;
+    grid-template-columns: 22px 1fr 46px 46px 56px 24px;
     gap: 6px;
     margin-bottom: 4px;
   }
@@ -312,6 +312,8 @@
   }
 
   .pv-product-table td.product-name { text-align: left; }
+  .pv-product-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pv-product-table tr.pv-total-row td { font-weight: 700; background: #f8f8f6; }
 
   .pv-notes {
     margin-top: 20px;
@@ -429,6 +431,7 @@
       <span>商品名稱</span>
       <span>訂貨</span>
       <span>出貨</span>
+      <span>單價</span>
       <span></span>
     </div>
 
@@ -516,8 +519,10 @@
         <tr>
           <th style="width:40px"></th>
           <th>商品名稱</th>
-          <th style="width:90px">訂貨數量</th>
-          <th style="width:90px">出貨數量</th>
+          <th style="width:70px">訂貨數量</th>
+          <th style="width:70px">出貨數量</th>
+          <th style="width:80px">單價</th>
+          <th style="width:96px">金額</th>
         </tr>
       </thead>
       <tbody id="pv-products"></tbody>
@@ -547,9 +552,9 @@
 
 <script>
 let products = [
-  { name: '', ordered: '', shipped: '' },
-  { name: '', ordered: '', shipped: '' },
-  { name: '', ordered: '', shipped: '' },
+  { name: '', ordered: '', shipped: '', price: '' },
+  { name: '', ordered: '', shipped: '', price: '' },
+  { name: '', ordered: '', shipped: '', price: '' },
 ];
 
 function today() {
@@ -577,6 +582,7 @@ function renderProductRows() {
       <input type="text" list="product-presets" placeholder="商品名稱" value="${p.name}" data-i="${i}" data-f="name">
       <input type="number" placeholder="訂貨" value="${p.ordered}" data-i="${i}" data-f="ordered" style="text-align:center">
       <input type="number" placeholder="出貨" value="${p.shipped}" data-i="${i}" data-f="shipped" style="text-align:center">
+      <input type="number" placeholder="單價" value="${p.price}" data-i="${i}" data-f="price" style="text-align:center">
       <button class="btn-remove" data-remove="${i}" title="移除">×</button>
     `;
     list.appendChild(row);
@@ -601,7 +607,7 @@ function removeProduct(e) {
 }
 
 document.getElementById('btn-add-product').addEventListener('click', () => {
-  products.push({ name: '', ordered: '', shipped: '' });
+  products.push({ name: '', ordered: '', shipped: '', price: '' });
   renderProductRows();
 });
 
@@ -623,26 +629,40 @@ function updatePreview() {
 
   const tbody = document.getElementById('pv-products');
   tbody.innerHTML = '';
+  const fmt = n => n.toLocaleString('en-US');
+  let total = 0;
   products.forEach((p, i) => {
-    if (!p.name && !p.ordered && !p.shipped) return;
+    if (!p.name && !p.ordered && !p.shipped && !p.price) return;
+    const qty = parseFloat(p.shipped) || 0;
+    const price = parseFloat(p.price) || 0;
+    const amount = qty * price;
+    total += amount;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${i + 1}</td>
       <td class="product-name">${p.name || ''}</td>
       <td>${p.ordered || ''}</td>
       <td>${p.shipped || ''}</td>
+      <td class="num">${price ? '$' + fmt(price) : ''}</td>
+      <td class="num">${amount ? '$' + fmt(amount) : ''}</td>
     `;
     tbody.appendChild(tr);
   });
 
   // fill blank rows to at least 5 visible lines
   const minRows = 5;
-  const filled = products.filter(p => p.name || p.ordered || p.shipped).length;
+  const filled = products.filter(p => p.name || p.ordered || p.shipped || p.price).length;
   for (let i = filled; i < minRows; i++) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>&nbsp;</td><td class="product-name"></td><td></td><td></td>`;
+    tr.innerHTML = `<td>&nbsp;</td><td class="product-name"></td><td></td><td></td><td></td><td></td>`;
     tbody.appendChild(tr);
   }
+
+  // total row
+  const trTotal = document.createElement('tr');
+  trTotal.className = 'pv-total-row';
+  trTotal.innerHTML = `<td colspan="5" style="text-align:right">合計</td><td class="num">$${fmt(total)}</td>`;
+  tbody.appendChild(trTotal);
 
   const notes = v('f-notes');
   const notesWrap = document.getElementById('pv-notes-wrap');
@@ -661,9 +681,9 @@ fieldIds.forEach(id => document.getElementById(id)?.addEventListener('input', up
 document.getElementById('btn-reset').addEventListener('click', () => {
   if (!confirm('確定要重設所有欄位嗎？')) return;
   products = [
-    { name: '', ordered: '', shipped: '' },
-    { name: '', ordered: '', shipped: '' },
-    { name: '', ordered: '', shipped: '' },
+    { name: '', ordered: '', shipped: '', price: '' },
+    { name: '', ordered: '', shipped: '', price: '' },
+    { name: '', ordered: '', shipped: '', price: '' },
   ];
   renderProductRows();
   fieldIds.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
